@@ -1,5 +1,6 @@
 import { io } from "socket.io-client"
-import { socketio_port } from "../../../../sites/common_site_config.json"
+// common_site_config.json is not reachable when developing outside a bench so we set this here
+const socketio_port = 9000
 
 let socket = null
 
