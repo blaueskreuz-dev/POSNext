@@ -1,235 +1,10 @@
 <template>
 	<div class="flex flex-col h-full bg-gray-50">
-		<!-- Item Groups Filter Tabs -->
-		<div class="px-1.5 sm:px-3 pt-1.5 sm:pt-3 pb-1.5 sm:pb-2 bg-white border-b border-gray-200">
-			<div class="flex items-center gap-1 sm:gap-2 overflow-x-auto pb-1 scrollbar-hide snap-x snap-mandatory">
-				<button
-					@click="handleAllFilterClick"
-					:class="[
-						'flex items-center px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-[10px] sm:text-xs font-medium whitespace-nowrap transition-[background-color,border-color] duration-75 touch-manipulation snap-start flex-shrink-0',
-						!activeFilterValue
-							? 'bg-blue-50 text-blue-600 border-2 border-blue-500 shadow-sm'
-							: 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 active:bg-gray-100',
-					]"
-				>
-					<svg class="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
-					</svg>
-					<span>{{ isBrandSortActive ? __('All Brands') : __('All Items') }}</span>
-				</button>
-				<button
-					v-for="option in activeFilterOptions"
-					:key="option.value"
-					@click="handleFilterClick(option.value)"
-					:class="[
-						'flex items-center px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-[10px] sm:text-xs font-medium whitespace-nowrap transition-[background-color,border-color] duration-75 touch-manipulation snap-start flex-shrink-0',
-						activeFilterValue === option.value
-							? 'bg-blue-50 text-blue-600 border-2 border-blue-500 shadow-sm'
-							: 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 active:bg-gray-100',
-					]"
-				>
-					<span>{{ __(option.label) }}</span>
-				</button>
-			</div>
-		</div>
-
 		<!-- Cache Sync Indicator -->
 		<div v-if="cacheSyncing" class="px-1.5 sm:px-3 py-1 bg-blue-50 border-b border-blue-200">
 			<div class="flex items-center justify-center gap-2 text-[10px] sm:text-xs text-blue-700">
 				<div class="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600"></div>
 				<span>{{ __('Syncing catalog in background... {0} items cached', [cacheStats.items]) }}</span>
-			</div>
-		</div>
-
-		<!-- Search Bar with Barcode Scanner and View Controls -->
-		<div class="px-1.5 sm:px-3 py-1.5 sm:py-2 bg-white border-b border-gray-200">
-			<div class="flex items-center gap-1 sm:gap-2">
-				<div class="flex-1 relative min-w-0">
-					<!-- Search Icon -->
-					<div class="absolute inset-y-0 start-0 ps-2 sm:ps-3 flex items-center pointer-events-none">
-						<svg
-							class="h-3.5 w-3.5 sm:h-4 sm:w-4 text-gray-400"
-							fill="none"
-							stroke="currentColor"
-							viewBox="0 0 24 24"
-						>
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-							/>
-						</svg>
-					</div>
-					<!-- Search Input -->
-					<input
-						id="item-search"
-						name="item-search"
-						ref="searchInputRef"
-						:value="searchTerm"
-						@input="handleSearchInput"
-						@keydown="handleKeyDown"
-						@click="handleSearchClick"
-						type="text"
-						:placeholder="searchPlaceholder"
-						:class="[
-							'w-full text-[11px] sm:text-sm border rounded-lg px-2 sm:px-3 py-2 ps-7 sm:ps-10 pe-16 sm:pe-24 focus:outline-none transition-all',
-							autoAddEnabled
-								? 'border-blue-400 bg-blue-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent'
-								: scannerEnabled
-								? 'border-green-400 bg-green-50 focus:ring-2 focus:ring-green-500 focus:border-transparent'
-								: 'border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent'
-						]"
-						:aria-label="__('Search items')"
-					/>
-					<!-- Barcode Scan Icon and Auto-Add Toggle -->
-					<div class="absolute inset-y-0 end-0 pe-1 sm:pe-2 flex items-center gap-0.5">
-						<button
-							@click="toggleBarcodeScanner"
-							:class="[
-								'p-1 sm:p-1.5 rounded transition-[background-color] duration-75 touch-manipulation',
-								scannerEnabled
-									? 'bg-green-100 hover:bg-green-200 active:bg-green-300 text-green-700'
-									: 'hover:bg-gray-100 active:bg-gray-200 text-gray-600'
-							]"
-							:title="scannerEnabled ? __('Barcode Scanner: ON (Click to disable)') : __('Barcode Scanner: OFF (Click to enable)')"
-							:aria-label="scannerEnabled ? __('Disable barcode scanner') : __('Enable barcode scanner')"
-						>
-							<svg class="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/>
-							</svg>
-						</button>
-						<button
-							@click="toggleAutoAdd"
-							:class="[
-								'p-1 sm:p-1.5 rounded transition-[background-color] duration-75 flex items-center gap-0.5 text-[9px] sm:text-xs font-medium px-1 sm:px-2 touch-manipulation',
-								autoAddEnabled
-									? 'bg-blue-100 hover:bg-blue-200 active:bg-blue-300 text-blue-700'
-									: 'hover:bg-gray-100 active:bg-gray-200 text-gray-600'
-							]"
-							:title="autoAddEnabled ? __('Auto-Add: ON - Press Enter to add items to cart') : __('Auto-Add: OFF - Click to enable automatic cart addition on Enter')"
-							:aria-label="autoAddEnabled ? __('Disable auto-add') : __('Enable auto-add')"
-						>
-							<svg class="w-3 h-3 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-							</svg>
-							<span class="hidden xs:inline">{{ __('Auto') }}</span>
-						</button>
-					</div>
-				</div>
-				<div class="flex items-center gap-0.5 bg-gray-100 rounded-lg p-0.5 flex-shrink-0">
-					<button
-						@click="setViewMode('grid')"
-						:class="[
-							'p-1.5 sm:p-2 rounded transition-[background-color,box-shadow] duration-75 touch-manipulation',
-							viewMode === 'grid' ? 'bg-white shadow-sm' : 'hover:bg-gray-200 active:bg-gray-300'
-						]"
-						:title="__('Grid View')"
-						:aria-label="__('Switch to grid view')"
-					>
-						<svg class="w-4 h-4 sm:w-4.5 sm:h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
-						</svg>
-					</button>
-					<button
-						@click="setViewMode('list')"
-						:class="[
-							'p-1.5 sm:p-2 rounded transition-[background-color,box-shadow] duration-75 touch-manipulation',
-							viewMode === 'list' ? 'bg-white shadow-sm' : 'hover:bg-gray-200 active:bg-gray-300'
-						]"
-						:title="__('List View')"
-						:aria-label="__('Switch to list view')"
-					>
-						<svg class="w-4 h-4 sm:w-4.5 sm:h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
-						</svg>
-					</button>
-				</div>
-
-				<!-- Sort Dropdown -->
-				<div class="relative z-50">
-					<button
-						@click="toggleSortDropdown"
-						data-sort-button
-						:class="[
-							'p-1.5 sm:p-2 rounded-lg transition-[background-color,box-shadow] duration-75 touch-manipulation border',
-							sortBy
-								? 'bg-blue-50 border-blue-400 text-blue-700 shadow-sm'
-								: 'bg-white border-gray-300 text-gray-600 hover:bg-gray-50 active:bg-gray-100'
-						]"
-						:title="sortBy
-							? (sortOrder === 'asc'
-								? __('Sorted by {0} A-Z', [getSortLabel(sortBy)])
-								: __('Sorted by {0} Z-A', [getSortLabel(sortBy)]))
-							: __('Sort items')"
-						:aria-label="__('Sort items')"
-					>
-						<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
-						</svg>
-					</button>
-
-					<!-- Dropdown Menu -->
-					<div
-						v-if="showSortDropdown"
-						@click.stop
-						class="absolute end-0 mt-1 w-56 bg-white rounded-lg shadow-xl border border-gray-200 z-[9999]"
-						style="box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);"
-					>
-						<div class="py-2">
-							<div class="px-3 py-2 text-xs font-semibold text-gray-500 uppercase border-b border-gray-100">
-								{{ __('Sort Items') }}
-							</div>
-							<div class="py-1">
-								<!-- Clear Sort -->
-								<button
-									@click="handleSortToggle(null)"
-									:class="[
-										'w-full px-3 py-2 text-sm transition-colors flex items-center justify-between group',
-										!sortBy ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'
-									]"
-								>
-									<span class="flex items-center gap-2.5">
-										<svg class="w-4 h-4 text-gray-400 group-hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-										</svg>
-										<span>{{ __('No Sorting') }}</span>
-									</span>
-								</button>
-
-								<div class="h-px bg-gray-100 my-1"></div>
-
-								<!-- Sort Options Loop -->
-								<button
-									v-for="option in sortOptions"
-									:key="option.field"
-									@click="handleSortToggle(option.field)"
-									:class="[
-										'w-full px-3 py-2 text-sm transition-colors flex items-center justify-between group',
-										sortBy === option.field ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'
-									]"
-								>
-									<span class="flex items-center gap-2.5">
-										<svg class="w-4 h-4 text-gray-400 group-hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="option.icon"/>
-										</svg>
-										<span>{{ option.label }}</span>
-									</span>
-									<!-- Sort direction icon -->
-									<svg
-										class="w-5 h-5"
-										:class="sortBy === option.field ? 'text-blue-600' : 'text-gray-300'"
-										fill="none"
-										stroke="currentColor"
-										viewBox="0 0 24 24"
-									>
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="SORT_ICONS[getSortIconState(option.field)]"/>
-									</svg>
-								</button>
-							</div>
-						</div>
-					</div>
-				</div>
 			</div>
 		</div>
 
@@ -763,8 +538,6 @@ const {
 	searchTerm,
 	selectedItemGroup,
 	selectedBrand,
-	itemGroups,
-	brands,
 	loading,
 	loadingMore,
 	hasMore,
@@ -917,14 +690,6 @@ const sortOptions = computed(() => {
 		BASE_SORT_OPTIONS[3],
 	]
 })
-const activeFilterValue = computed(() => (
-	isBrandSortActive.value ? selectedBrand.value : selectedItemGroup.value
-))
-const activeFilterOptions = computed(() => (
-	isBrandSortActive.value
-		? (brands.value || []).map((b) => ({ value: b.brand, label: b.brand }))
-		: (itemGroups.value || []).map((g) => ({ value: g.item_group, label: g.item_group }))
-))
 const selectedFilterLabel = computed(() => selectedBrand.value || selectedItemGroup.value || null)
 
 // Watch for cart items and pos profile changes (optimized - uses length + hash instead of deep watch)
@@ -1198,22 +963,6 @@ watch(viewMode, async () => {
 function setViewMode(mode) {
 	viewMode.value = mode
 	userManuallySetView.value = true
-}
-
-function handleAllFilterClick() {
-	if (isBrandSortActive.value) {
-		itemStore.setSelectedBrand(null)
-		return
-	}
-	itemStore.setSelectedItemGroup(null)
-}
-
-function handleFilterClick(value) {
-	if (isBrandSortActive.value) {
-		itemStore.setSelectedBrand(value)
-		return
-	}
-	itemStore.setSelectedItemGroup(value)
 }
 
 // Pagination functions — each page fetches fresh data from server
