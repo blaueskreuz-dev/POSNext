@@ -233,30 +233,22 @@ export default defineConfig({
 	optimizeDeps: {
 		include: [
 			"feather-icons",
-			"showdown",
 			"highlight.js/lib/core",
 			"interactjs",
 			"qz-tray",
 		],
+		exclude: ["frappe-ui"],
 	},
 	server: {
 		allowedHosts: true,
 		port: 8080,
 		proxy: {
 			"^/(app|api|assets|files|printview)": {
-				target: "http://127.0.0.1:8000",
+				target: "https://erp-test.blaueskreuz.ch",
 				ws: true,
 				changeOrigin: true,
 				secure: false,
 				cookieDomainRewrite: "localhost",
-				router: (req) => {
-					const site_name = req.headers.host.split(":")[0]
-					// Support both localhost and 127.0.0.1
-					const isLocalhost =
-						site_name === "localhost" || site_name === "127.0.0.1"
-					const targetHost = isLocalhost ? "127.0.0.1" : site_name
-					return `http://${targetHost}:8000`
-				},
 			},
 		},
 	},
