@@ -164,73 +164,6 @@
 				</div>
 				<div v-else>
 					<div class="flex gap-1.5">
-						<!-- Search Input -->
-						<div class="relative flex-1">
-							<!-- Search Icon Prefix -->
-							<div
-								class="absolute inset-y-0 start-0 ps-3 flex items-center pointer-events-none"
-							>
-								<svg
-									v-if="customersLoaded"
-									class="w-4 h-4 text-gray-400"
-									fill="none"
-									stroke="currentColor"
-									viewBox="0 0 24 24"
-								>
-									<path
-										stroke-linecap="round"
-										stroke-linejoin="round"
-										stroke-width="2"
-										d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-									/>
-								</svg>
-								<div
-									v-else
-									class="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-blue-500"
-								></div>
-							</div>
-
-							<!-- Native Input for Instant Search -->
-							<input
-								id="cart-customer-search"
-								name="cart-customer-search"
-								:value="customerSearch"
-								@input="handleSearchInput"
-								@focus="handleSearchFocus"
-								@blur="handleSearchBlur"
-								type="text"
-								:placeholder="__('Search or add customer...')"
-								class="w-full h-10 ps-9 pe-3 text-xs border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm transition-shadow"
-								:disabled="!customersLoaded"
-								@keydown="handleKeydown"
-								autocomplete="off"
-								:aria-label="__('Search customer in cart')"
-							/>
-						</div>
-
-						<!-- Quick Create Customer Button -->
-						<button
-							type="button"
-							@click="createNewCustomer"
-							class="flex items-center justify-center w-10 h-10 bg-green-500 hover:bg-green-600 active:bg-green-700 rounded-xl text-white transition-colors shadow-sm hover:shadow touch-manipulation flex-shrink-0"
-							:title="__('Create new customer')"
-							:aria-label="__('Create new customer')"
-						>
-							<svg
-								class="w-5 h-5"
-								fill="none"
-								stroke="currentColor"
-								viewBox="0 0 24 24"
-								stroke-width="2"
-							>
-								<path
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
-								/>
-							</svg>
-						</button>
-
 						<!-- Document Type Toggle (Sales Invoice / Sales Order) -->
 						<div
 							v-if="settingsStore.allowSalesOrder"
@@ -743,7 +676,7 @@
 			<div v-else class="flex flex-col gap-0.5 sm:gap-1">
 				<div
 					v-for="(item, index) in sortedItems"
-					:key="item.item_code + '-' + (item.uom || '') + (item.is_free_item ? '-free' : '')"
+					:key="item.row_id || item.item_code + '-' + (item.uom || '') + (item.is_free_item ? '-free' : '')"
 					@click="item.is_free_item ? null : openEditDialog(item)"
 					:class="[
 						'border rounded-md p-1.5 sm:p-2 transition-all duration-200',
@@ -838,7 +771,7 @@
 								<button
 									v-if="!item.is_free_item"
 									type="button"
-									@click.stop="$emit('remove-item', item.item_code, item.uom)"
+									@click.stop="$emit('remove-item', lineKey(item), item.uom)"
 									class="text-gray-400 hover:text-red-600 active:text-red-700 transition-colors flex-shrink-0 p-0.5 -m-0.5 touch-manipulation active:scale-90"
 									:aria-label="__('Remove {0}', [item.item_name])"
 									:title="__('Remove item')"
@@ -1799,6 +1732,16 @@ function getSmartStep(quantity) {
 }
 
 /**
+ * Identifier the cart store uses to find a line. The same item can appear
+ * on several lines at different prices, so prefer the line's row_id.
+ *
+ * @param {Object} item - Cart item
+ */
+function lineKey(item) {
+	return item.row_id || item.item_code;
+}
+
+/**
  * Increment item quantity using smart step.
  * Uses getSmartStep to determine appropriate increment value.
  *
@@ -1810,7 +1753,7 @@ function incrementQuantity(item) {
 
 	const step = getSmartStep(item.quantity);
 	const newQty = Math.round((item.quantity + step) * 10000) / 10000;
-	emit("update-quantity", item.item_code, newQty, item.uom);
+	emit("update-quantity", lineKey(item), newQty, item.uom);
 }
 
 /**
@@ -1828,9 +1771,9 @@ function decrementQuantity(item) {
 
 	if (newQty <= 0) {
 		// If quantity would be 0 or negative, remove the item
-		emit("remove-item", item.item_code, item.uom);
+		emit("remove-item", lineKey(item), item.uom);
 	} else {
-		emit("update-quantity", item.item_code, newQty, item.uom);
+		emit("update-quantity", lineKey(item), newQty, item.uom);
 	}
 }
 
@@ -1852,10 +1795,10 @@ function updateQuantity(item, value) {
 	if (isNaN(qty)) return;
 
 	// If quantity is zero or negative, remove the item from the cart
-	if (qty <= 0) return emit("remove-item", item.item_code, item.uom);
+	if (qty <= 0) return emit("remove-item", lineKey(item), item.uom);
 
 	// For positive numbers, update quantity immediately (no rounding here while typing)
-	emit("update-quantity", item.item_code, qty, item.uom);
+	emit("update-quantity", lineKey(item), qty, item.uom);
 }
 
 /**
@@ -1870,12 +1813,12 @@ function handleQuantityBlur(item) {
 	// When user leaves the input field, round and validate
 	if (!item.quantity || item.quantity <= 0) {
 		// If quantity is 0 or invalid, remove the item
-		emit("remove-item", item.item_code, item.uom);
+		emit("remove-item", lineKey(item), item.uom);
 	} else {
 		// Round to 4 decimal places for consistency
 		const roundedQty = Math.round(item.quantity * 10000) / 10000;
 		if (roundedQty !== item.quantity) {
-			emit("update-quantity", item.item_code, roundedQty, item.uom);
+			emit("update-quantity", lineKey(item), roundedQty, item.uom);
 		}
 	}
 }
@@ -1904,7 +1847,7 @@ async function selectUom(item, newUom) {
 	}
 
 	const currentUom = item.uom || item.stock_uom;
-	await cartStore.changeItemUOM(item.item_code, newUom, currentUom);
+	await cartStore.changeItemUOM(lineKey(item), newUom, currentUom);
 	openUomDropdown.value = null;
 	emit("update-uom", item.item_code, newUom);
 }
@@ -1935,7 +1878,7 @@ async function handleUpdateItem(updatedItem) {
 	// Get the original UOM from selectedItem (before any changes)
 	const originalUom = selectedItem.value?.uom || selectedItem.value?.stock_uom;
 	// Use store method to update item, passing original UOM to identify correct item
-	await cartStore.updateItemDetails(updatedItem.item_code, updatedItem, originalUom);
+	await cartStore.updateItemDetails(lineKey(updatedItem), updatedItem, originalUom);
 	// Also emit for parent component compatibility
 	emit("edit-item", updatedItem);
 }
