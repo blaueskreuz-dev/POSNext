@@ -676,7 +676,7 @@
 			<div v-else class="flex flex-col gap-0.5 sm:gap-1">
 				<div
 					v-for="(item, index) in sortedItems"
-					:key="item.row_id || item.item_code + '-' + (item.uom || '') + (item.is_free_item ? '-free' : '')"
+					:key="item.row_id"
 					@click="item.is_free_item ? null : openEditDialog(item)"
 					:class="[
 						'border rounded-md p-1.5 sm:p-2 transition-all duration-200',
@@ -771,7 +771,7 @@
 								<button
 									v-if="!item.is_free_item"
 									type="button"
-									@click.stop="$emit('remove-item', lineKey(item), item.uom)"
+									@click.stop="$emit('remove-item', item.row_id)"
 									class="text-gray-400 hover:text-red-600 active:text-red-700 transition-colors flex-shrink-0 p-0.5 -m-0.5 touch-manipulation active:scale-90"
 									:aria-label="__('Remove {0}', [item.item_name])"
 									:title="__('Remove item')"
@@ -918,7 +918,7 @@
 									<div class="relative group/uom" @click.stop>
 										<button
 											type="button"
-											@click="toggleUomDropdown(item.item_code, item.uom)"
+											@click="toggleUomDropdown(item.row_id)"
 											:disabled="
 												item.is_resolved_barcode || !item.item_uoms || item.item_uoms.length === 0
 											"
@@ -947,7 +947,7 @@
 										<svg
 											:class="[
 												'absolute end-1.5 top-1/2 -translate-y-1/2 w-2.5 h-2.5 pointer-events-none transition-transform',
-												openUomDropdown === `${item.item_code}-${item.uom}`
+												openUomDropdown === item.row_id
 													? 'rotate-180'
 													: '',
 												item.is_resolved_barcode
@@ -970,7 +970,7 @@
 										<div
 											v-if="
 												openUomDropdown ===
-													`${item.item_code}-${item.uom}` &&
+													item.row_id &&
 												item.item_uoms &&
 												item.item_uoms.length > 0
 											"
@@ -1277,8 +1277,8 @@ const props = defineProps({
  * Events emitted to parent component for cart operations
  */
 const emit = defineEmits([
-	"update-quantity", // (itemCode, newQty, uom?) - Update item quantity
-	"remove-item", // (itemCode, uom?) - Remove item from cart
+	"update-quantity", // (rowId, newQty) - Update line quantity
+	"remove-item", // (rowId) - Remove line from cart
 	"select-customer", // (customer) - Select/change customer
 	"edit-customer", // (customer) - Open edit customer dialog
 	"create-customer", // (searchText) - Open create customer dialog
@@ -1732,16 +1732,6 @@ function getSmartStep(quantity) {
 }
 
 /**
- * Identifier the cart store uses to find a line. The same item can appear
- * on several lines at different prices, so prefer the line's row_id.
- *
- * @param {Object} item - Cart item
- */
-function lineKey(item) {
-	return item.row_id || item.item_code;
-}
-
-/**
  * Increment item quantity using smart step.
  * Uses getSmartStep to determine appropriate increment value.
  *
@@ -1753,7 +1743,7 @@ function incrementQuantity(item) {
 
 	const step = getSmartStep(item.quantity);
 	const newQty = Math.round((item.quantity + step) * 10000) / 10000;
-	emit("update-quantity", lineKey(item), newQty, item.uom);
+	emit("update-quantity", item.row_id, newQty);
 }
 
 /**
@@ -1771,9 +1761,9 @@ function decrementQuantity(item) {
 
 	if (newQty <= 0) {
 		// If quantity would be 0 or negative, remove the item
-		emit("remove-item", lineKey(item), item.uom);
+		emit("remove-item", item.row_id);
 	} else {
-		emit("update-quantity", lineKey(item), newQty, item.uom);
+		emit("update-quantity", item.row_id, newQty);
 	}
 }
 
@@ -1795,10 +1785,10 @@ function updateQuantity(item, value) {
 	if (isNaN(qty)) return;
 
 	// If quantity is zero or negative, remove the item from the cart
-	if (qty <= 0) return emit("remove-item", lineKey(item), item.uom);
+	if (qty <= 0) return emit("remove-item", item.row_id);
 
 	// For positive numbers, update quantity immediately (no rounding here while typing)
-	emit("update-quantity", lineKey(item), qty, item.uom);
+	emit("update-quantity", item.row_id, qty);
 }
 
 /**
@@ -1813,12 +1803,12 @@ function handleQuantityBlur(item) {
 	// When user leaves the input field, round and validate
 	if (!item.quantity || item.quantity <= 0) {
 		// If quantity is 0 or invalid, remove the item
-		emit("remove-item", lineKey(item), item.uom);
+		emit("remove-item", item.row_id);
 	} else {
 		// Round to 4 decimal places for consistency
 		const roundedQty = Math.round(item.quantity * 10000) / 10000;
 		if (roundedQty !== item.quantity) {
-			emit("update-quantity", lineKey(item), roundedQty, item.uom);
+			emit("update-quantity", item.row_id, roundedQty);
 		}
 	}
 }
@@ -1831,9 +1821,8 @@ function handleQuantityBlur(item) {
  * Toggle UOM dropdown visibility for an item.
  * Uses unique key combining item_code + uom to handle same item with different UOMs.
  */
-function toggleUomDropdown(itemCode, uom) {
-	const key = `${itemCode}-${uom}`;
-	openUomDropdown.value = openUomDropdown.value === key ? null : key;
+function toggleUomDropdown(rowId) {
+	openUomDropdown.value = openUomDropdown.value === rowId ? null : rowId;
 }
 
 /**
@@ -1846,8 +1835,7 @@ async function selectUom(item, newUom) {
 		return;
 	}
 
-	const currentUom = item.uom || item.stock_uom;
-	await cartStore.changeItemUOM(lineKey(item), newUom, currentUom);
+	await cartStore.changeItemUOM(item.row_id, newUom);
 	openUomDropdown.value = null;
 	emit("update-uom", item.item_code, newUom);
 }
@@ -1875,10 +1863,8 @@ function openEditDialog(item) {
  * @param {Object} updatedItem - Updated item data from dialog
  */
 async function handleUpdateItem(updatedItem) {
-	// Get the original UOM from selectedItem (before any changes)
-	const originalUom = selectedItem.value?.uom || selectedItem.value?.stock_uom;
-	// Use store method to update item, passing original UOM to identify correct item
-	await cartStore.updateItemDetails(lineKey(updatedItem), updatedItem, originalUom);
+	// Use store method to update the line
+	await cartStore.updateItemDetails(updatedItem.row_id, updatedItem);
 	// Also emit for parent component compatibility
 	emit("edit-item", updatedItem);
 }

@@ -8,6 +8,7 @@ import {
 	checkStockAvailability,
 } from "@/utils/stockValidator"
 import { offlineState } from "@/utils/offline/offlineState"
+import { generateUUID } from "@/utils/offline/uuid"
 import { useToast } from "@/composables/useToast"
 import { defineStore } from "pinia"
 import { computed, nextTick, ref, toRaw, watch } from "vue"
@@ -175,12 +176,12 @@ export const usePOSCartStore = defineStore("posCart", () => {
 	// Actions
 	function addItem(item, qty = 1, _autoAdd = false, currentProfile = null) {
 		if (currentProfile && settingsStore.shouldEnforceStockValidation() && shouldValidateItemStock(item)) {
-			// Account for quantity already in the cart for this item
+			// Account for quantity already in the cart for this item (across all its lines)
 			const itemUom = item.uom || item.stock_uom
-			const existing = invoiceItems.value.find(
-				(i) => i.item_code === item.item_code && i.uom === itemUom,
-			)
-			const totalQty = (existing ? existing.quantity : 0) + qty
+			const inCartQty = invoiceItems.value
+				.filter((i) => i.item_code === item.item_code && i.uom === itemUom)
+				.reduce((sum, i) => sum + i.quantity, 0)
+			const totalQty = inCartQty + qty
 			const warehouse = item.warehouse || currentProfile.warehouse
 
 			const check = checkStockAvailability(item, totalQty, warehouse)
@@ -197,12 +198,9 @@ export const usePOSCartStore = defineStore("posCart", () => {
 	 * Wraps useInvoice.updateItemQuantity to enforce stock limits
 	 * when the user clicks +/- or types a new quantity.
 	 */
-	function updateItemQuantity(itemCode, quantity, uom = null) {
-		const item = uom
-			? invoiceItems.value.find((i) => i.item_code === itemCode && i.uom === uom)
-			: invoiceItems.value.find((i) => i.item_code === itemCode)
-
-		if (!item) return baseUpdateItemQuantity(itemCode, quantity, uom)
+	function updateItemQuantity(rowId, quantity) {
+		const item = findCartItem(rowId)
+		if (!item) return
 
 		const newQty = Number.parseFloat(quantity) || 1
 
@@ -215,7 +213,7 @@ export const usePOSCartStore = defineStore("posCart", () => {
 			}
 		}
 
-		baseUpdateItemQuantity(itemCode, quantity, uom)
+		baseUpdateItemQuantity(rowId, quantity)
 	}
 
 	function clearCart() {
@@ -424,6 +422,7 @@ export const usePOSCartStore = defineStore("posCart", () => {
 			} else {
 				// Different product — add a dedicated free item row
 				invoiceItems.value.push({
+					row_id: generateUUID(),
 					item_code: freeItem.item_code,
 					item_name: freeItem.item_name || freeItem.item_code,
 					rate: 0,
@@ -1120,15 +1119,12 @@ export const usePOSCartStore = defineStore("posCart", () => {
 	}
 
 	/**
-	 * Find a cart item by item_code and optionally by UOM
-	 * @param {string} itemCode - Item code to find
-	 * @param {string|null} uom - Optional UOM to match
+	 * Find a cart line by its row_id
+	 * @param {string} rowId - The line's row_id
 	 * @returns {Object|undefined} Cart item or undefined
 	 */
-	function findCartItem(itemCode, uom = null) {
-		return invoiceItems.value.find((item) =>
-			item.item_code === itemCode && (!uom || item.uom === uom)
-		)
+	function findCartItem(rowId) {
+		return invoiceItems.value.find((item) => item.row_id === rowId)
 	}
 
 	/**
@@ -1191,17 +1187,16 @@ export const usePOSCartStore = defineStore("posCart", () => {
 
 	/**
 	 * Change item UOM - merges if target UOM already exists
-	 * @param {string} itemCode - Item code
+	 * @param {string} rowId - The line's row_id
 	 * @param {string} newUom - New UOM to change to
-	 * @param {string|null} currentUom - Current UOM (required when same item has multiple UOMs)
 	 */
-	async function changeItemUOM(itemCode, newUom, currentUom = null) {
+	async function changeItemUOM(rowId, newUom) {
 		try {
-			const cartItem = findCartItem(itemCode, currentUom)
+			const cartItem = findCartItem(rowId)
 			if (!cartItem || cartItem.uom === newUom) return
 
 			// Check for existing item to merge with
-			const existingItem = findItemWithUom(itemCode, newUom, cartItem)
+			const existingItem = findItemWithUom(cartItem.item_code, newUom, cartItem)
 			if (existingItem) {
 				const totalQty = mergeItems(cartItem, existingItem, cartItem.quantity)
 				showSuccess(__('Merged into {0} (Total: {1})', [newUom, totalQty]))
@@ -1221,20 +1216,19 @@ export const usePOSCartStore = defineStore("posCart", () => {
 
 	/**
 	 * Update item details - handles UOM changes with merging
-	 * @param {string} itemCode - Item code
+	 * @param {string} rowId - The line's row_id
 	 * @param {Object} updates - Updated details
-	 * @param {string|null} currentUom - Current UOM (required when same item has multiple UOMs)
 	 */
-	async function updateItemDetails(itemCode, updates, currentUom = null) {
+	async function updateItemDetails(rowId, updates) {
 		try {
-			const cartItem = findCartItem(itemCode, currentUom)
+			const cartItem = findCartItem(rowId)
 			if (!cartItem) {
 				throw new Error("Item not found in cart")
 			}
 
 			// Handle UOM change with potential merge
 			if (updates.uom && updates.uom !== cartItem.uom) {
-				const existingItem = findItemWithUom(itemCode, updates.uom, cartItem)
+				const existingItem = findItemWithUom(cartItem.item_code, updates.uom, cartItem)
 				if (existingItem) {
 					const qtyToMerge = updates.quantity ?? cartItem.quantity
 					const totalQty = mergeItems(cartItem, existingItem, qtyToMerge)

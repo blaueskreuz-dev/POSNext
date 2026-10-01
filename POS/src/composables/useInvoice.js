@@ -5,6 +5,7 @@ import { useSerialNumberStore } from "@/stores/serialNumber"
 import { CoalescingMutex } from "@/utils/mutex"
 import { logger } from "@/utils/logger"
 import { roundCurrency } from "@/utils/currency"
+import { generateUUID } from "@/utils/offline/uuid"
 
 const log = logger.create("Invoice")
 
@@ -217,114 +218,73 @@ export function useInvoice() {
 		)
 	})
 
+	/**
+	 * Finds a cart line by its row_id. Every add creates its own line, so the
+	 * same item can appear several times and item_code does not identify a line.
+	 * @param {string} rowId - The line's row_id
+	 */
+	function findLine(rowId) {
+		return invoiceItems.value.find((i) => i.row_id === rowId)
+	}
+
 	// Actions
 	function addItem(item, quantity = 1) {
-		const itemUom = item.uom || item.stock_uom
-		const existingItem = invoiceItems.value.find(
-			(i) => i.item_code === item.item_code && i.uom === itemUom,
-		)
-
-		if (existingItem) {
-			// Store old values before update for incremental cache adjustment
-			// Use price_list_rate for subtotal calculations (before discount)
-			// IMPORTANT: Calculate oldAmount using same rounding as cache to ensure consistency
-			const oldPriceListRate = existingItem.price_list_rate || existingItem.rate
-			const oldAmount = roundCurrency(
-				existingItem.quantity * roundCurrency(oldPriceListRate),
-			)
-			const oldTax = existingItem.tax_amount || 0
-			const oldDiscount = existingItem.discount_amount || 0
-
-			// For serial items, merge the serial numbers
-			if (existingItem.has_serial_no && item.serial_no) {
-				const existingSerials = existingItem.serial_no
-					? existingItem.serial_no.split("\n").filter((s) => s.trim())
-					: []
-				const newSerials = item.serial_no.split("\n").filter((s) => s.trim())
-				// Combine serials (avoid duplicates)
-				const allSerials = [...new Set([...existingSerials, ...newSerials])]
-				existingItem.serial_no = allSerials.join("\n")
-				// For serial items, quantity must match serial count
-				existingItem.quantity = allSerials.length
-			} else {
-				existingItem.quantity += quantity
-			}
-			recalculateItem(existingItem)
-
-			// Update cache incrementally (new values - old values)
-			// Use rounded price_list_rate for subtotal to match ERPNext
-			const priceListRate = existingItem.price_list_rate || existingItem.rate
-			_cachedSubtotal.value +=
-				roundCurrency(existingItem.quantity * roundCurrency(priceListRate)) -
-				oldAmount
-			_cachedTotalTax.value += (existingItem.tax_amount || 0) - oldTax
-			_cachedTotalDiscount.value +=
-				(existingItem.discount_amount || 0) - oldDiscount
-		} else {
-			const newItem = {
-				item_code: item.item_code,
-				item_name: item.item_name,
-				rate: item.rate || item.price_list_rate || 0,
-				price_list_rate: item.price_list_rate || item.rate || 0,
-				quantity: quantity,
-				discount_amount: 0,
-				discount_percentage: 0,
-				tax_amount: 0,
-				amount: quantity * (item.rate || item.price_list_rate || 0),
-				stock_qty: item.stock_qty || 0,
-				image: item.image,
-				uom: item.uom || item.stock_uom,
-				stock_uom: item.stock_uom,
-				conversion_factor: item.conversion_factor || 1,
-				warehouse: item.warehouse,
-				actual_batch_qty: item.actual_batch_qty || 0,
-				has_batch_no: item.has_batch_no || 0,
-				has_serial_no: item.has_serial_no || 0,
-				batch_no: item.batch_no,
-				serial_no: item.serial_no,
-				item_uoms: item.item_uoms || [], // Available UOMs for this item
-				// Add item_group and brand for offer eligibility checking
-				item_group: item.item_group,
-				brand: item.brand,
-				// Resolved barcode flag - prevents editing qty/uom/rate for weighted/priced barcodes
-				is_resolved_barcode: item.is_resolved_barcode || false,
-				// Stock validation fields — needed for qty increase checks in cart
-				actual_qty: item.actual_qty ?? 0,
-				is_stock_item: item.is_stock_item ?? 1,
-				is_bundle: item.is_bundle || false,
-				allow_negative_stock: item.allow_negative_stock || 0,
-			}
-			invoiceItems.value.push(newItem)
-			// Recalculate the newly added item to apply taxes
-			recalculateItem(newItem)
-
-			// Update cache incrementally (add new item values)
-			// Use rounded price_list_rate for subtotal to match ERPNext
-			const priceListRate = newItem.price_list_rate || newItem.rate
-			_cachedSubtotal.value += roundCurrency(
-				newItem.quantity * roundCurrency(priceListRate),
-			)
-			_cachedTotalTax.value += newItem.tax_amount || 0
-			_cachedTotalDiscount.value += newItem.discount_amount || 0
+		// Every add gets its own line, even for the same item and price. Second-hand goods are 
+		// priced per piece not per type.
+		const newItem = {
+			row_id: generateUUID(),
+			item_code: item.item_code,
+			item_name: item.item_name,
+			rate: item.rate || item.price_list_rate || 0,
+			price_list_rate: item.price_list_rate || item.rate || 0,
+			quantity: quantity,
+			discount_amount: 0,
+			discount_percentage: 0,
+			tax_amount: 0,
+			amount: quantity * (item.rate || item.price_list_rate || 0),
+			stock_qty: item.stock_qty || 0,
+			image: item.image,
+			uom: item.uom || item.stock_uom,
+			stock_uom: item.stock_uom,
+			conversion_factor: item.conversion_factor || 1,
+			warehouse: item.warehouse,
+			actual_batch_qty: item.actual_batch_qty || 0,
+			has_batch_no: item.has_batch_no || 0,
+			has_serial_no: item.has_serial_no || 0,
+			batch_no: item.batch_no,
+			serial_no: item.serial_no,
+			item_uoms: item.item_uoms || [], // Available UOMs for this item
+			// Add item_group and brand for offer eligibility checking
+			item_group: item.item_group,
+			brand: item.brand,
+			// Resolved barcode flag - prevents editing qty/uom/rate for weighted/priced barcodes
+			is_resolved_barcode: item.is_resolved_barcode || false,
+			// Stock validation fields — needed for qty increase checks in cart
+			actual_qty: item.actual_qty ?? 0,
+			is_stock_item: item.is_stock_item ?? 1,
+			is_bundle: item.is_bundle || false,
+			allow_negative_stock: item.allow_negative_stock || 0,
 		}
+		invoiceItems.value.push(newItem)
+		// Recalculate the newly added item to apply taxes
+		recalculateItem(newItem)
+
+		// Update cache incrementally (add new item values)
+		// Use rounded price_list_rate for subtotal to match ERPNext
+		const priceListRate = newItem.price_list_rate || newItem.rate
+		_cachedSubtotal.value += roundCurrency(
+			newItem.quantity * roundCurrency(priceListRate),
+		)
+		_cachedTotalTax.value += newItem.tax_amount || 0
+		_cachedTotalDiscount.value += newItem.discount_amount || 0
 	}
 
 	/**
-	 * Removes an item from the invoice
-	 * @param {string} itemCode - The item code to remove
-	 * @param {string|null} uom - Optional UOM to match when same item exists with different UOMs.
-	 *                            If provided, only removes the item with matching item_code AND uom.
-	 *                            If null, removes the first item matching item_code.
+	 * Removes a line from the invoice
+	 * @param {string} rowId - The line's row_id
 	 */
-	function removeItem(itemCode, uom = null) {
-		let itemToRemove
-		if (uom) {
-			itemToRemove = invoiceItems.value.find(
-				(i) => i.item_code === itemCode && i.uom === uom,
-			)
-		} else {
-			itemToRemove = invoiceItems.value.find((i) => i.item_code === itemCode)
-		}
+	function removeItem(rowId) {
+		const itemToRemove = findLine(rowId)
 
 		if (itemToRemove) {
 			// Update cache incrementally (subtract removed item values)
@@ -339,38 +299,20 @@ export function useInvoice() {
 
 			// Return serial numbers back to cache if item has serials
 			if (itemToRemove.serial_no && itemToRemove.has_serial_no) {
-				serialStore.returnSerials(itemCode, itemToRemove.serial_no)
+				serialStore.returnSerials(itemToRemove.item_code, itemToRemove.serial_no)
 			}
-		}
 
-		if (uom) {
-			invoiceItems.value = invoiceItems.value.filter(
-				(i) => !(i.item_code === itemCode && i.uom === uom),
-			)
-		} else {
-			invoiceItems.value = invoiceItems.value.filter(
-				(i) => i.item_code !== itemCode,
-			)
+			invoiceItems.value = invoiceItems.value.filter((i) => i !== itemToRemove)
 		}
 	}
 
 	/**
-	 * Updates the quantity of an item in the invoice
-	 * @param {string} itemCode - The item code to update
+	 * Updates the quantity of a line in the invoice
+	 * @param {string} rowId - The line's row_id
 	 * @param {number} quantity - The new quantity value
-	 * @param {string|null} uom - Optional UOM to match when same item exists with different UOMs.
-	 *                            If provided, only updates the item with matching item_code AND uom.
-	 *                            If null, updates the first item matching item_code.
 	 */
-	function updateItemQuantity(itemCode, quantity, uom = null) {
-		let item
-		if (uom) {
-			item = invoiceItems.value.find(
-				(i) => i.item_code === itemCode && i.uom === uom,
-			)
-		} else {
-			item = invoiceItems.value.find((i) => i.item_code === itemCode)
-		}
+	function updateItemQuantity(rowId, quantity) {
+		const item = findLine(rowId)
 
 		if (item) {
 			// Store old values before update for incremental cache adjustment
@@ -396,7 +338,7 @@ export function useInvoice() {
 					const serialsToKeep = serialList.slice(0, newQuantity)
 
 					if (serialsToReturn.length > 0) {
-						serialStore.returnSerials(itemCode, serialsToReturn)
+						serialStore.returnSerials(item.item_code, serialsToReturn)
 						item.serial_no = serialsToKeep.join("\n")
 					}
 				}
@@ -416,8 +358,8 @@ export function useInvoice() {
 		}
 	}
 
-	function updateItemRate(itemCode, rate, isManualEdit = false) {
-		const item = invoiceItems.value.find((i) => i.item_code === itemCode)
+	function updateItemRate(rowId, rate, isManualEdit = false) {
+		const item = findLine(rowId)
 		if (item) {
 			// Store old values before update for incremental cache adjustment
 			// Use effective rate (manually edited rate or price_list_rate)
@@ -456,8 +398,8 @@ export function useInvoice() {
 		}
 	}
 
-	function updateItemDiscount(itemCode, discountPercentage) {
-		const item = invoiceItems.value.find((i) => i.item_code === itemCode)
+	function updateItemDiscount(rowId, discountPercentage) {
+		const item = findLine(rowId)
 		if (item) {
 			// Validate discount percentage (0-100)
 			let validDiscount = Number.parseFloat(discountPercentage) || 0

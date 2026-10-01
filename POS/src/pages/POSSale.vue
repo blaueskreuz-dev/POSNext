@@ -369,9 +369,7 @@
 								:applied-offers="cartStore.appliedOffers"
 								:warehouses="profileWarehouses"
 								@update-quantity="cartStore.updateItemQuantity"
-								@remove-item="
-									(itemCode, uom) => cartStore.removeItem(itemCode, uom)
-								"
+								@remove-item="cartStore.removeItem"
 								@select-customer="handleCustomerSelected"
 								@create-customer="handleCreateCustomer"
 								@edit-customer="handleEditCustomer"
@@ -577,6 +575,13 @@
 							offersDialogRef.value
 						)
 				"
+			/>
+
+			<PriceKeypadDialog
+				v-model="uiStore.showPriceKeypad"
+				:item="priceKeypadItem"
+				:currency="shiftStore.profileCurrency"
+				@confirm="handlePriceEntered"
 			/>
 
 			<!-- Batch/Serial Dialog -->
@@ -1002,6 +1007,8 @@ import POSFooter from "@/components/common/POSFooter.vue";
 import ManagementSlider from "@/components/pos/ManagementSlider.vue";
 import POSHeader from "@/components/pos/POSHeader.vue";
 import BatchSerialDialog from "@/components/sale/BatchSerialDialog.vue";
+import PriceKeypadDialog from "@/components/sale/PriceKeypadDialog.vue";
+import { generateUUID } from "@/utils/offline/uuid";
 import CouponDialog from "@/components/sale/CouponDialog.vue";
 import CreateCustomerDialog from "@/components/sale/CreateCustomerDialog.vue";
 import CustomerDialog from "@/components/sale/CustomerDialog.vue";
@@ -1094,6 +1101,7 @@ const { isRTL } = useLocale();
 
 // Component refs
 const itemsSelectorRef = ref(null);
+const priceKeypadItem = ref(null);
 const offersDialogRef = ref(null);
 const containerRef = ref(null);
 const dividerRef = ref(null);
@@ -1886,9 +1894,21 @@ function handleItemSelected(item, autoAdd = false) {
 		return;
 	}
 
-	// Add to cart
+	// Ask for the piece price, then add to cart (see handlePriceEntered)
+	priceKeypadItem.value = item;
+	uiStore.showPriceKeypad = true;
+}
+
+function handlePriceEntered(price) {
+	const item = priceKeypadItem.value;
+	if (!item) return;
 	try {
-		cartStore.addItem(item, 1, false, shiftStore.currentProfile);
+		cartStore.addItem(
+			{ ...item, rate: price, price_list_rate: price },
+			1,
+			false,
+			shiftStore.currentProfile
+		);
 	} catch (error) {
 		uiStore.showError(
 			__("Insufficient Stock"),
@@ -1899,7 +1919,7 @@ function handleItemSelected(item, autoAdd = false) {
 }
 
 async function handleEditItem(updatedItem) {
-	await cartStore.updateItemDetails(updatedItem.item_code, updatedItem);
+	await cartStore.updateItemDetails(updatedItem.row_id, updatedItem);
 }
 
 function handleAdditionalDiscountUpdate(discountAmount) {
@@ -2317,7 +2337,11 @@ async function handleLoadDraft(draft) {
 		}
 
 		const draftData = await draftsStore.loadDraft(draft);
-		cartStore.invoiceItems = draftData.items;
+		// Drafts saved before row_ids existed have none; every cart line needs one
+		cartStore.invoiceItems = draftData.items.map((item) => ({
+			...item,
+			row_id: item.row_id || generateUUID(),
+		}));
 		cartStore.setCustomer(draftData.customer);
 		cartStore.currentDraftId = draft.draft_id; // Set current draft ID
 
