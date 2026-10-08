@@ -224,7 +224,7 @@
 				<!-- Main Content Container -->
 				<div
 					ref="containerRef"
-					class="flex-1 flex flex-col lg:flex-row overflow-hidden relative"
+					class="flex-1 flex flex-col overflow-hidden relative"
 				>
 					<!-- Mobile Tab Navigation -->
 					<div
@@ -296,16 +296,15 @@
 						</button>
 					</div>
 
-					<!-- Left: Items Selector (Desktop) / Tab Content (Mobile) -->
+					<!-- Bottom: Items Selector (Desktop, below the cart) / Tab Content (Mobile) -->
 					<keep-alive>
 						<div
 							v-if="uiStore.isDesktop || uiStore.mobileActiveTab === 'items'"
-							:style="{
-								width: uiStore.isDesktop ? uiStore.leftPanelWidth + 'px' : '100%',
-							}"
 							:class="[
-								'flex flex-col bg-white overflow-hidden',
-								uiStore.isDesktop ? 'flex-shrink-0' : 'flex-1',
+								'flex flex-col bg-white overflow-hidden w-full',
+								uiStore.isDesktop
+									? 'order-last flex-shrink-0 max-h-[50%] border-t border-gray-200'
+									: 'flex-1',
 							]"
 							style="contain: layout style paint"
 						>
@@ -319,35 +318,7 @@
 						</div>
 					</keep-alive>
 
-					<!-- Draggable Divider (Desktop Only) -->
-					<div
-						v-if="uiStore.isDesktop"
-						ref="dividerRef"
-						role="separator"
-						aria-orientation="vertical"
-						@pointerdown="startResize"
-						class="w-1 bg-gray-200 hover:bg-blue-400 cursor-col-resize relative flex-shrink-0 transition-[background-color] duration-100 hidden lg:block"
-						:class="{
-							'bg-blue-500': uiStore.isResizing,
-							'pointer-events-none opacity-0': uiStore.isAnyDialogOpen,
-							'z-[1]': !uiStore.isAnyDialogOpen,
-						}"
-					>
-						<div
-							class="absolute inset-y-0 -left-2 -right-2"
-							style="cursor: col-resize"
-						></div>
-						<div
-							class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-1 h-12 bg-gray-400 rounded-full"
-							:class="{
-								'bg-blue-600': uiStore.isResizing,
-								'bg-blue-500': !uiStore.isResizing,
-							}"
-							style="transition: background-color 0.1s ease; opacity: 0.8"
-						></div>
-					</div>
-
-					<!-- Right: Invoice Cart (Desktop) / Tab Content (Mobile) -->
+					<!-- Top: Invoice Cart (Desktop) / Tab Content (Mobile) -->
 					<keep-alive>
 						<div
 							v-if="uiStore.isDesktop || uiStore.mobileActiveTab === 'cart'"
