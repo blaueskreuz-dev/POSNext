@@ -59,7 +59,7 @@
 						@touchmove.passive="getOptimizedClickHandler(item).touchmove"
 						@touchend.passive="getOptimizedClickHandler(item).touchend"
 						@click="getOptimizedClickHandler(item).click"
-						class="aspect-square flex items-center justify-center p-2 rounded-xl bg-primary hover:bg-primary-hover active:bg-primary-active shadow-md text-white touch-manipulation transition-colors duration-75 cursor-pointer select-none"
+						class="h-20 flex items-center justify-center p-2 rounded-xl bg-primary hover:bg-primary-hover active:bg-primary-active shadow-md text-white touch-manipulation transition-colors duration-75 cursor-pointer select-none"
 					>
 						<h3 class="text-sm sm:text-base font-semibold text-center leading-tight line-clamp-3 break-words">
 							{{ item.item_name }}
