@@ -221,7 +221,12 @@
 				<!-- Main Content Container -->
 				<div
 					ref="containerRef"
-					class="flex-1 flex flex-col overflow-hidden relative"
+					:class="[
+						'flex-1 overflow-hidden relative',
+						uiStore.isDesktop
+							? 'grid grid-cols-[4fr_1fr] grid-rows-[minmax(0,1fr)_auto]'
+							: 'flex flex-col',
+					]"
 				>
 					<!-- Mobile Tab Navigation -->
 					<div
@@ -293,14 +298,14 @@
 						</button>
 					</div>
 
-					<!-- Bottom: Items Selector (Desktop, below the cart) / Tab Content (Mobile) -->
+					<!-- Items Selector (Desktop: below the cart) / Tab Content (Mobile) -->
 					<keep-alive>
 						<div
 							v-if="uiStore.isDesktop || uiStore.mobileActiveTab === 'items'"
 							:class="[
 								'flex flex-col bg-white overflow-hidden w-full',
 								uiStore.isDesktop
-									? 'order-last flex-shrink-0 max-h-[50%] border-t border-gray-200'
+									? 'col-start-1 row-start-2 max-h-[50vh] border-t border-gray-200'
 									: 'flex-1',
 							]"
 							style="contain: layout style paint"
@@ -315,13 +320,13 @@
 						</div>
 					</keep-alive>
 
-					<!-- Top: Invoice Cart (Desktop) / Tab Content (Mobile) -->
+					<!-- Invoice Cart (Desktop: top left) / Tab Content (Mobile) -->
 					<keep-alive>
 						<div
 							v-if="uiStore.isDesktop || uiStore.mobileActiveTab === 'cart'"
 							:class="[
 								'flex flex-col bg-gray-50 overflow-hidden',
-								uiStore.isDesktop ? 'flex-1' : 'flex-1',
+								uiStore.isDesktop ? 'col-start-1 row-start-1 min-h-0' : 'flex-1',
 							]"
 							style="min-width: 300px; contain: layout style paint"
 						>
@@ -364,6 +369,12 @@
 							/>
 						</div>
 					</keep-alive>
+
+					<!-- Action panel (Desktop): right column spanning cart and items -->
+					<ActionPanel
+						v-if="uiStore.isDesktop"
+						class="col-start-2 row-start-1 row-span-2 min-w-0"
+					/>
 
 					<!-- Mobile Floating Cart Button -->
 					<button
@@ -974,6 +985,7 @@ import LoadingSpinner from "@/components/common/LoadingSpinner.vue";
 import POSFooter from "@/components/common/POSFooter.vue";
 import POSHeader from "@/components/pos/POSHeader.vue";
 import BatchSerialDialog from "@/components/sale/BatchSerialDialog.vue";
+import ActionPanel from "@/components/sale/ActionPanel.vue";
 import PriceKeypadDialog from "@/components/sale/PriceKeypadDialog.vue";
 import { generateUUID } from "@/utils/offline/uuid";
 import CouponDialog from "@/components/sale/CouponDialog.vue";
