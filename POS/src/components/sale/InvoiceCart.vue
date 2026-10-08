@@ -5,9 +5,7 @@
   OVERVIEW
   ============================================================================
   This component displays the shopping cart in the POS interface, including:
-  - Customer selection/search with instant in-memory filtering
   - Cart items list with quantity controls, UOM selection, and pricing
-  - Offers and coupon application buttons
   - Order totals (subtotal, discount, tax, grand total)
   - Checkout and Hold order actions
   - Quick action buttons when cart is empty
@@ -16,33 +14,28 @@
   COMPONENT STRUCTURE
   ============================================================================
 
-  1. HEADER SECTION (Customer Selection)
-     - Shows selected customer info with edit/remove options
-     - Search input with instant filtering from cached customer list
-     - Dropdown with search results and "Create New Customer" option
-     - Works offline using cached customer data
+  There is no customer selection: invoices always use the POS Profile's
+  default customer.
 
-  2. ACTION BUTTONS SECTION (Offers & Coupons)
-     - "Offers" button - Shows available promotional offers
-     - "Coupon" button - Apply coupon/gift card codes
-     - Badge indicators show count of available/applied offers
+  1. HEADER SECTION
+     - "Clear" button to empty the cart
 
-  3. CART ITEMS SECTION
-     - Scrollable list of cart items
-     - Each item shows: thumbnail, name, badges (free/discount), price, quantity controls
+  2. CART ITEMS SECTION
+     - Column header (Item / Qty / Rate / Discount / Total) and one row per line
+     - Each item shows: name, free badge, quantity controls, rate, discount, total
      - Quantity controls: increment/decrement buttons + manual input
      - UOM (Unit of Measure) dropdown selector
      - Serial item support with edit dialog
      - Empty cart state with quick action buttons
 
-  4. TOTALS SECTION
+  3. TOTALS SECTION
      - Total Quantity
      - Subtotal
      - Discount (highlighted when applied)
      - Tax
      - Grand Total (emphasized)
 
-  5. ACTION BUTTONS
+  4. ACTION BUTTONS
      - Checkout - Proceed to payment
      - Hold - Save as draft order
 
@@ -50,8 +43,6 @@
   FEATURES
   ============================================================================
 
-  - Offline Support: Customer search works offline using cached data
-  - Instant Search: In-memory customer filtering for zero-latency results
   - Smart Quantity Steps: Automatically detects decimal precision for +/- buttons
   - UOM Conversion: Change units with automatic price recalculation
   - Serial Number Support: Special handling for serialized inventory items
@@ -63,399 +54,20 @@
 -->
 <template>
 	<div class="flex flex-col h-full bg-white">
-		<!-- Header with Customer -->
-		<div class="px-2.5 py-2 border-b border-gray-200 bg-gray-50">
-			<!-- Inline Customer Search/Selection -->
-			<div ref="customerSearchContainer" class="relative">
-				<div v-if="customer">
-					<!-- Two Cards Layout: Customer Card + Document Type Card -->
-					<div class="flex items-stretch gap-2">
-						<!-- Customer Card -->
-						<div class="flex-1 flex items-center gap-1.5 bg-white border border-gray-200 rounded-xl p-1.5 shadow-sm min-w-0">
-							<!-- Customer Avatar & Info -->
-							<div class="flex items-center gap-2 min-w-0 flex-1 px-1.5 py-1">
-								<div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
-									<svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-									</svg>
-								</div>
-								<div class="min-w-0 flex-1">
-									<p class="text-xs font-semibold text-gray-900 truncate leading-tight">
-										{{ customer.customer_name || customer.name }}
-									</p>
-									<p v-if="customer.mobile_no" class="text-[10px] text-gray-500 truncate leading-tight">
-										{{ customer.mobile_no }}
-									</p>
-								</div>
-							</div>
-
-							<!-- Action Buttons -->
-							<div class="flex items-center gap-0.5 flex-shrink-0" @click.stop>
-								<button
-									type="button"
-									@click.stop="$emit('edit-customer', customer)"
-									class="w-7 h-7 flex items-center justify-center text-blue-500 hover:bg-blue-50 active:bg-blue-100 rounded-lg transition-colors touch-manipulation"
-									:title="__('Edit customer details')"
-								>
-									<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-										<path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-									</svg>
-								</button>
-								<button
-									type="button"
-									@click.stop="$emit('create-customer', '')"
-									class="w-7 h-7 flex items-center justify-center text-green-600 hover:bg-green-50 active:bg-green-100 rounded-lg transition-colors touch-manipulation"
-									:title="__('Create new customer')"
-								>
-									<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
-										<path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
-									</svg>
-								</button>
-								<button
-									type="button"
-									@click.stop="removeCustomer"
-									class="w-7 h-7 flex items-center justify-center text-red-500 hover:bg-red-50 active:bg-red-100 rounded-lg transition-colors touch-manipulation"
-									:title="__('Remove customer')"
-								>
-									<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
-										<path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-									</svg>
-								</button>
-							</div>
-						</div>
-
-						<!-- Document Type Card -->
-						<div
-							v-if="settingsStore.allowSalesOrder"
-							class="flex items-center bg-white border border-gray-200 rounded-xl p-1.5 shadow-sm flex-shrink-0"
-						>
-							<div class="flex items-center bg-gray-100 rounded-lg p-0.5">
-								<button
-									type="button"
-									@click="selectDocType('Sales Invoice')"
-									class="px-2.5 py-1.5 text-[11px] font-semibold rounded-md transition-all duration-200 flex items-center gap-1"
-									:class="cartStore.targetDoctype === 'Sales Invoice'
-										? 'bg-white text-blue-600 shadow-sm'
-										: 'text-gray-500 hover:text-gray-700'"
-									:title="__('Sales Invoice')"
-								>
-									<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-									</svg>
-									<span>{{ __("Invoice") }}</span>
-								</button>
-								<button
-									type="button"
-									@click="selectDocType('Sales Order')"
-									class="px-2.5 py-1.5 text-[11px] font-semibold rounded-md transition-all duration-200 flex items-center gap-1"
-									:class="cartStore.targetDoctype === 'Sales Order'
-										? 'bg-white text-orange-600 shadow-sm'
-										: 'text-gray-500 hover:text-gray-700'"
-									:title="__('Sales Order')"
-								>
-									<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-									</svg>
-									<span>{{ __("Order") }}</span>
-								</button>
-							</div>
-						</div>
-					</div>
-				</div>
-				<div v-else>
-					<div class="flex gap-1.5">
-						<!-- Document Type Toggle (Sales Invoice / Sales Order) -->
-						<div
-							v-if="settingsStore.allowSalesOrder"
-							class="flex items-center bg-gray-100 rounded-xl p-0.5 h-10"
-						>
-							<button
-								type="button"
-								@click="selectDocType('Sales Invoice')"
-								class="h-full px-2.5 text-xs font-semibold rounded-lg transition-all duration-200 flex items-center gap-1.5"
-								:class="cartStore.targetDoctype === 'Sales Invoice'
-									? 'bg-white text-blue-600 shadow-sm'
-									: 'text-gray-500 hover:text-gray-700'"
-								:title="__('Sales Invoice')"
-							>
-								<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-								</svg>
-								<span class="hidden sm:inline">{{ __("Invoice") }}</span>
-							</button>
-							<button
-								type="button"
-								@click="selectDocType('Sales Order')"
-								class="h-full px-2.5 text-xs font-semibold rounded-lg transition-all duration-200 flex items-center gap-1.5"
-								:class="cartStore.targetDoctype === 'Sales Order'
-									? 'bg-white text-orange-600 shadow-sm'
-									: 'text-gray-500 hover:text-gray-700'"
-								:title="__('Sales Order')"
-							>
-								<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-								</svg>
-								<span class="hidden sm:inline">{{ __("Order") }}</span>
-							</button>
-						</div>
-					</div>
-				</div>
-
-				<!-- Customer Dropdown -->
-				<div
-					v-if="customerSearchFocused || customerSearch.trim().length >= 2"
-					class="absolute z-50 mt-0.5 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-48 overflow-hidden will-change-transform"
-				>
-					<!-- Frequent Customers Header (when showing suggestions) -->
-					<div
-						v-if="customerSearchFocused && customerSearch.trim().length < 2 && customerResults.length > 0"
-						class="px-2 py-1 bg-gray-50 border-b border-gray-200"
-					>
-						<span class="text-[10px] font-medium text-gray-500 uppercase tracking-wide">
-							{{ __('Frequent Customers') }}
-						</span>
-					</div>
-
-					<!-- Customer Results -->
-					<div v-if="customerResults.length > 0" class="max-h-48 overflow-y-auto overscroll-contain">
-						<button
-							type="button"
-							v-for="(cust, index) in customerResults"
-							:key="cust.name"
-							@mousedown.prevent="selectCustomer(cust)"
-							:class="[
-								'w-full text-start px-2 py-1.5 flex items-center gap-1.5 border-b border-gray-100 last:border-0 touch-manipulation select-none cursor-pointer active:bg-blue-200',
-								index === selectedIndex ? 'bg-blue-100' : 'hover:bg-blue-50 active:bg-blue-100',
-							]"
-						>
-							<div
-								class="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 pointer-events-none"
-							>
-								<span class="text-[10px] font-bold text-blue-600">{{
-									getInitials(cust.customer_name)
-								}}</span>
-							</div>
-							<div class="flex-1 min-w-0 pointer-events-none">
-								<p class="text-[11px] font-semibold text-gray-900 truncate">
-									{{ cust.customer_name }}
-								</p>
-								<p v-if="cust.mobile_no" class="text-[9px] text-gray-600">
-									{{ cust.mobile_no }}
-								</p>
-							</div>
-						</button>
-					</div>
-
-					<!-- No Results + Create New Option -->
-					<div v-else-if="customerSearch.trim().length >= 2">
-						<div
-							class="px-2 py-1.5 text-center text-[11px] font-medium text-gray-700 border-b border-gray-100"
-						>
-							{{ __('No results for "{0}"', [customerSearch]) }}
-						</div>
-					</div>
-
-					<!-- Create New Customer Option -->
-					<button
-						type="button"
-						v-if="customerSearch.trim().length >= 2"
-						@mousedown.prevent="createNewCustomer"
-						class="w-full text-start px-2 py-1.5 hover:bg-green-50 active:bg-green-100 flex items-center gap-1.5 border-t border-gray-200 touch-manipulation select-none cursor-pointer"
-					>
-						<div
-							class="w-5 h-5 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0 pointer-events-none"
-						>
-							<svg
-								class="w-3 h-3 text-green-600"
-								fill="none"
-								stroke="currentColor"
-								viewBox="0 0 24 24"
-							>
-								<path
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									stroke-width="2"
-									d="M12 4v16m8-8H4"
-								/>
-							</svg>
-						</div>
-						<div class="flex-1 pointer-events-none">
-							<p class="text-[11px] font-medium text-green-700">
-								{{ __("Create New Customer") }}
-							</p>
-							<p class="text-[9px] text-green-600">"{{ customerSearch }}"</p>
-						</div>
-					</button>
-				</div>
-			</div>
-		</div>
-
 		<!-- Action Buttons Section -->
-		<div v-if="items.length > 0" class="px-2 py-2 border-b border-gray-200 bg-white">
-			<div class="flex items-center justify-between mb-1.5">
-				<h2 class="text-xs font-bold text-gray-900">{{ __("Cart Items") }}</h2>
-				<div class="flex items-center gap-1">
-					<!-- Clear Cart Button -->
-					<button
-						@click="$emit('clear-cart')"
-						class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 transition-colors touch-manipulation"
-						type="button"
-						:title="__('Clear all items')"
-					>
-						<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-							<path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V5a2 2 0 00-2-2h-2a2 2 0 00-2 2v2M4 7h16"/>
-						</svg>
-						<span>{{ __("Clear") }}</span>
-					</button>
-					<!-- Sort Dropdown -->
-					<div class="relative" ref="cartSortContainer">
-						<button
-							@click="toggleCartSortDropdown"
-							:class="[
-								'inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors touch-manipulation',
-								cartSortBy
-									? 'text-blue-600 hover:bg-blue-50'
-									: 'text-gray-600 hover:bg-gray-50'
-							]"
-							:title="cartSortBy
-								? (cartSortOrder === 'asc'
-									? __('Sorted by {0} A-Z', [getCartSortLabel()])
-									: __('Sorted by {0} Z-A', [getCartSortLabel()]))
-								: __('Sort cart items')"
-							:aria-label="__('Sort cart items')"
-							type="button"
-						>
-							<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-								<path stroke-linecap="round" stroke-linejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
-							</svg>
-							<span>{{ __("Sort") }}</span>
-						</button>
-
-						<!-- Sort Dropdown Menu -->
-						<div
-							v-if="showCartSortDropdown"
-							@click.stop
-							class="absolute end-0 mt-1 w-52 bg-white rounded-lg shadow-xl border border-gray-200 z-[9999]"
-						>
-							<div class="py-2">
-								<div class="px-3 py-2 text-xs font-semibold text-gray-500 uppercase border-b border-gray-100">
-									{{ __('Sort Cart') }}
-								</div>
-								<div class="py-1">
-									<!-- No Sorting (clear) -->
-									<button
-										@click="handleCartSortToggle(null)"
-										:class="[
-											'w-full px-3 py-2 text-sm transition-colors flex items-center justify-between group',
-											!cartSortBy ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'
-										]"
-										type="button"
-									>
-										<span class="flex items-center gap-2.5">
-											<svg class="w-4 h-4 text-gray-400 group-hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-											</svg>
-											<span>{{ __('No Sorting') }}</span>
-										</span>
-									</button>
-
-									<div class="h-px bg-gray-100 my-1"></div>
-
-									<!-- Sort Options Loop -->
-									<button
-										v-for="option in CART_SORT_OPTIONS"
-										:key="option.field"
-										@click="handleCartSortToggle(option.field)"
-										:class="[
-											'w-full px-3 py-2 text-sm transition-colors flex items-center justify-between group',
-											cartSortBy === option.field ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'
-										]"
-										type="button"
-									>
-										<span class="flex items-center gap-2.5">
-											<svg class="w-4 h-4 text-gray-400 group-hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="option.icon"/>
-											</svg>
-											<span>{{ option.label }}</span>
-										</span>
-										<!-- Sort direction icon -->
-										<svg
-											class="w-5 h-5"
-											:class="cartSortBy === option.field ? 'text-blue-600' : 'text-gray-300'"
-											fill="none"
-											stroke="currentColor"
-											viewBox="0 0 24 24"
-										>
-											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="CART_SORT_ICONS[getCartSortIconState(option.field)]"/>
-										</svg>
-									</button>
-								</div>
-							</div>
-						</div>
-					</div>
-				</div>
-			</div>
-
-			<!-- Offers & Coupon Buttons -->
-			<div class="flex gap-2">
-				<!-- View All Offers Button -->
-				<button
-					type="button"
-					@click="$emit('show-offers')"
-					class="relative flex-1 flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 hover:border-green-400 hover:from-green-100 hover:to-emerald-100 hover:shadow-sm transition-all min-w-0 touch-manipulation active:scale-[0.98]"
-					:aria-label="__('View all available offers')"
-				>
-					<svg
-						class="w-3.5 h-3.5 text-green-600 flex-shrink-0"
-						fill="none"
-						stroke="currentColor"
-						viewBox="0 0 24 24"
-						stroke-width="2"
-					>
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
-						/>
-					</svg>
-					<span class="text-[11px] font-bold text-green-700">{{ __("Offers") }}</span>
-					<!-- Badge shows ONLY applied offers count - NOT eligible/pending offers -->
-					<!-- This prevents confusion where offers show as "applied" before backend validation -->
-					<span
-						v-if="appliedOfferCount > 0"
-						class="bg-green-600 text-white text-[9px] font-bold rounded-full px-1.5 py-0.5 flex-shrink-0 min-w-[16px] text-center"
-					>
-						{{ appliedOfferCount }}
-					</span>
-				</button>
-
-				<!-- Enter Coupon Code Button -->
-				<button
-					type="button"
-					@click="$emit('apply-coupon')"
-					class="relative flex-1 flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-lg bg-gradient-to-r from-purple-50 to-violet-50 border border-purple-200 hover:border-purple-400 hover:from-purple-100 hover:to-violet-100 hover:shadow-sm transition-all min-w-0 touch-manipulation active:scale-[0.98]"
-					:aria-label="__('Apply coupon code')"
-				>
-					<svg
-						class="w-3.5 h-3.5 text-purple-600 flex-shrink-0"
-						fill="currentColor"
-						viewBox="0 0 20 20"
-					>
-						<path
-							fill-rule="evenodd"
-							d="M4 2a2 2 0 00-2 2v11a3 3 0 106 0V4a2 2 0 00-2-2H4zm1 14a1 1 0 100-2 1 1 0 000 2zm5-1.757l4.9-4.9a2 2 0 000-2.828L13.485 5.1a2 2 0 00-2.828 0L10 5.757v8.486zM16 18H9.071l6-6H16a2 2 0 012 2v2a2 2 0 01-2 2z"
-							clip-rule="evenodd"
-						/>
-					</svg>
-					<span class="text-[11px] font-bold text-purple-700">{{ __("Coupon") }}</span>
-					<span
-						v-if="availableGiftCards.length > 0"
-						class="bg-purple-600 text-white text-[9px] font-bold rounded-full px-1.5 py-0.5 flex-shrink-0 min-w-[16px] text-center"
-					>
-						{{ availableGiftCards.length }}
-					</span>
-				</button>
-			</div>
+		<div v-if="items.length > 0" class="flex justify-end px-2 py-1 border-b border-gray-200 bg-white">
+			<!-- Clear Cart Button -->
+			<button
+				@click="$emit('clear-cart')"
+				class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 transition-colors touch-manipulation"
+				type="button"
+				:title="__('Clear all items')"
+			>
+				<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+					<path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V5a2 2 0 00-2-2h-2a2 2 0 00-2 2v2M4 7h16"/>
+				</svg>
+				<span>{{ __("Clear") }}</span>
+			</button>
 		</div>
 
 		<!-- Cart Items -->
@@ -641,52 +253,39 @@
 							__("Close Shift")
 						}}</span>
 					</button>
-
-					<!-- Create Customer -->
-					<button
-						type="button"
-						@click="$emit('create-customer', '')"
-						class="flex flex-col items-center justify-center p-3 sm:p-4 bg-white border border-gray-200 rounded-lg hover:border-green-300 hover:bg-green-50 active:bg-green-100 transition-colors shadow-sm hover:shadow touch-manipulation group"
-						:title="__('Create new customer')"
-					>
-						<div
-							class="w-9 h-9 sm:w-10 sm:h-10 bg-green-50 rounded-full flex items-center justify-center mb-2 group-hover:bg-green-100 transition-colors"
-						>
-							<svg
-								class="w-5 h-5 text-green-600"
-								fill="none"
-								stroke="currentColor"
-								viewBox="0 0 24 24"
-							>
-								<path
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									stroke-width="2"
-									d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
-								/>
-							</svg>
-						</div>
-						<span class="text-[11px] sm:text-xs font-semibold text-gray-700">{{
-							__("Create Customer")
-						}}</span>
-					</button>
 				</div>
 			</div>
 
 			<div v-else class="flex flex-col gap-1.5">
+				<!-- Column header (same grid as the rows) -->
+				<div
+					:class="[
+						cartGridCols,
+						'sticky top-0 z-[1] bg-gray-50 border border-transparent px-3 py-1.5 text-sm font-semibold text-gray-600',
+					]"
+				>
+					<span>{{ __("Item") }}</span>
+					<span>{{ __("Qty") }}</span>
+					<span>{{ __("Rate") }}</span>
+					<span>{{ __("Discount") }}</span>
+					<span>{{ __("Total") }}</span>
+					<span></span>
+				</div>
+
 				<div
 					v-for="(item, index) in sortedItems"
 					:key="item.row_id"
 					@click="item.is_free_item ? null : openEditDialog(item)"
 					:class="[
-						'flex items-center gap-3 rounded-lg border px-3 py-2.5 transition-colors duration-100',
+						cartGridCols,
+						'rounded-lg border px-3 py-2.5 transition-colors duration-100',
 						item.is_free_item
 							? 'bg-green-50 border-green-300 cursor-default'
 							: 'bg-white border-gray-200 hover:bg-primary/5 active:bg-primary/10 cursor-pointer'
 					]"
 				>
-					<!-- Name, badges & unit price -->
-					<div class="flex-1 min-w-0">
+					<!-- Item: name & free badge -->
+					<div class="min-w-0">
 						<div class="flex items-center gap-1.5 min-w-0">
 							<h4 class="text-base font-bold text-gray-900 truncate leading-tight">
 								{{ item.item_name }}
@@ -706,24 +305,6 @@
 								</svg>
 								{{ item.is_free_item ? __("FREE") : __("+{0} FREE", [item.free_qty]) }}
 							</span>
-							<!-- Discount Badge -->
-							<span
-								v-if="item.discount_amount && item.discount_amount > 0"
-								class="inline-flex items-center px-1.5 py-0.5 bg-red-50 text-red-700 rounded-full text-[10px] font-bold border border-red-200 flex-shrink-0"
-							>
-								<svg class="w-2.5 h-2.5 me-0.5" fill="currentColor" viewBox="0 0 20 20">
-									<path
-										fill-rule="evenodd"
-										d="M10 18a8 8 0 100-16 8 8 0 000 16zM7 9a1 1 0 000 2h6a1 1 0 100-2H7z"
-										clip-rule="evenodd"
-									/>
-								</svg>
-								{{ __("{0}%", [Number(item.discount_percentage).toFixed(0)]) }}
-							</span>
-						</div>
-						<!-- Unit price -->
-						<div class="mt-0.5 text-sm text-gray-500 tabular-nums">
-							{{ formatCurrency(item.rate) }}
 						</div>
 					</div>
 
@@ -731,14 +312,14 @@
 					<!-- For free items, show static quantity badge -->
 					<div
 						v-if="item.is_free_item"
-						class="flex items-center justify-center bg-green-100 border border-green-300 rounded-lg h-10 min-w-[3rem] px-3 flex-shrink-0"
+						class="justify-self-start flex items-center justify-center bg-green-100 border border-green-300 rounded-lg h-10 min-w-[3rem] px-3"
 					>
 						<span class="text-base font-bold text-green-700">{{ item.quantity }}</span>
 					</div>
 					<!-- For serial items, show serial badge with edit button -->
 					<div
 						v-else-if="item.has_serial_no && item.serial_no"
-						class="flex items-center gap-1 flex-shrink-0"
+						class="justify-self-start flex items-center gap-1"
 						@click.stop
 					>
 						<div class="flex items-center bg-primary/10 rounded-lg px-2.5 h-10">
@@ -758,7 +339,7 @@
 					<div
 						v-else
 						:class="[
-							'flex items-center rounded-lg overflow-hidden flex-shrink-0',
+							'justify-self-start flex items-center rounded-lg overflow-hidden',
 							item.is_resolved_barcode ? 'bg-amber-50 border border-amber-300' : ''
 						]"
 						@click.stop
@@ -817,17 +398,33 @@
 						</button>
 					</div>
 
+					<!-- Rate -->
+					<div class="text-base text-gray-700 tabular-nums">
+						{{ formatCurrency(item.rate) }}
+					</div>
+
+					<!-- Discount -->
+					<div class="text-base font-semibold text-red-600 tabular-nums">
+						<template v-if="item.discount_amount > 0">
+							{{
+								item.discount_percentage > 0
+									? __("{0}%", [Number(item.discount_percentage).toFixed(0)])
+									: formatCurrency(item.discount_amount)
+							}}
+						</template>
+					</div>
+
 					<!-- Line Total -->
-					<div class="w-24 text-end text-lg font-bold text-gray-900 tabular-nums flex-shrink-0">
+					<div class="text-lg font-bold text-gray-900 tabular-nums">
 						{{ formatCurrency(item.amount || item.rate * item.quantity) }}
 					</div>
 
-					<!-- Remove (placeholder keeps totals aligned on free item rows) -->
+					<!-- Remove (empty cell on free item rows) -->
 					<button
 						v-if="!item.is_free_item"
 						type="button"
 						@click.stop="$emit('remove-item', item.row_id)"
-						class="w-10 h-10 -me-1 flex items-center justify-center rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 active:bg-red-100 transition-colors flex-shrink-0 touch-manipulation"
+						class="w-10 h-10 flex items-center justify-center rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 active:bg-red-100 transition-colors touch-manipulation"
 						:aria-label="__('Remove {0}', [item.item_name])"
 						:title="__('Remove item')"
 					>
@@ -835,7 +432,7 @@
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
 						</svg>
 					</button>
-					<div v-else class="w-10 -me-1 flex-shrink-0"></div>
+					<div v-else></div>
 				</div>
 			</div>
 		</div>
@@ -1221,6 +818,11 @@ watch(
  * @returns {Number} Count of applied offers
  */
 const appliedOfferCount = computed(() => (props.appliedOffers || []).length);
+
+// Shared column layout for the cart header and item rows:
+// Item | Qty (−/input/+) | Rate | Discount | Total | remove button
+const cartGridCols =
+	"grid grid-cols-[minmax(0,1fr)_16rem_15rem_14rem_12rem_2.5rem] items-center gap-3";
 
 /**
  * Pre-computed customer lookup map for O(1) access by ID.
