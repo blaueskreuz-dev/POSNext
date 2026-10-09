@@ -17,10 +17,7 @@
   There is no customer selection: invoices always use the POS Profile's
   default customer.
 
-  1. HEADER SECTION
-     - "Clear" button to empty the cart
-
-  2. CART ITEMS SECTION
+  1. CART ITEMS SECTION
      - Column header (Item / Qty / Rate / Discount / Total) and one row per line
      - Each item shows: name, free badge, quantity controls, rate, discount, total
      - Quantity controls: increment/decrement buttons + manual input
@@ -28,14 +25,14 @@
      - Serial item support with edit dialog
      - Empty cart state with quick action buttons
 
-  3. TOTALS SECTION
+  2. TOTALS SECTION
      - Total Quantity
      - Subtotal
      - Discount (highlighted when applied)
      - Tax
      - Grand Total (emphasized)
 
-  4. ACTION BUTTONS
+  3. ACTION BUTTONS
      - Checkout - Proceed to payment
      - Hold - Save as draft order
 
@@ -54,22 +51,6 @@
 -->
 <template>
 	<div class="flex flex-col h-full bg-white">
-		<!-- Action Buttons Section -->
-		<div v-if="items.length > 0" class="flex justify-end px-2 py-1 border-b border-gray-200 bg-white">
-			<!-- Clear Cart Button -->
-			<button
-				@click="$emit('clear-cart')"
-				class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 transition-colors touch-manipulation"
-				type="button"
-				:title="__('Clear all items')"
-			>
-				<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-					<path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V5a2 2 0 00-2-2h-2a2 2 0 00-2 2v2M4 7h16"/>
-				</svg>
-				<span>{{ __("Clear") }}</span>
-			</button>
-		</div>
-
 		<!-- Cart Items -->
 		<div class="flex-1 overflow-y-auto p-0.5 sm:p-1.5 bg-gray-50">
 			<div

@@ -374,6 +374,8 @@
 					<ActionPanel
 						v-if="uiStore.isDesktop"
 						class="col-start-2 row-start-1 row-span-2 min-w-0"
+						:cart-empty="cartStore.isEmpty"
+						@clear-cart="handleClearCart"
 					/>
 
 					<!-- Mobile Floating Cart Button -->
