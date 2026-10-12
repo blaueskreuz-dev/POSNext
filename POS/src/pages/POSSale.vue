@@ -338,27 +338,9 @@
 								@remove-item="cartStore.removeItem"
 								@select-customer="handleCustomerSelected"
 								@create-customer="handleCreateCustomer"
-								@edit-customer="handleEditCustomer"
 								@proceed-to-payment="handleProceedToPayment"
-								@clear-cart="handleClearCart"
-								@save-draft="handleSaveDraft"
-								@apply-coupon="uiStore.showCouponDialog = true"
-								@show-offers="uiStore.showOffersDialog = true"
-								@remove-offer="
-									(offer) =>
-										cartStore.removeOffer(
-											offer,
-											shiftStore.currentProfile,
-											offersDialogRef.value
-										)
-								"
 								@update-uom="cartStore.changeItemUOM"
 								@edit-item="handleEditItem"
-								@view-shift="uiStore.showOpenShiftDialog = true"
-								@show-drafts="openDraftDialog"
-								@show-history="openHistoryDialog"
-								@show-return="openReturnDialog"
-								@close-shift="handleCloseShift"
 							/>
 						</div>
 					</keep-alive>
@@ -369,6 +351,8 @@
 						class="col-start-2 row-start-1 row-span-2 min-w-0"
 						:cart-empty="cartStore.isEmpty"
 						@clear-cart="handleClearCart"
+						@save-draft="handleSaveDraft"
+						@show-drafts="openDraftDialog"
 					/>
 
 					<!-- Mobile Floating Cart Button -->
