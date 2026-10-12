@@ -3,59 +3,11 @@
 		class="bg-white shadow-sm sticky top-0 z-[200]"
 	>
 		<div class="flex py-2 sm:py-3">
-			<!-- POS Icon - Aligned with Management Sidebar (64px) -->
-			<div class="w-16 flex-shrink-0 flex items-center justify-center">
-				<button
-					class="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center shadow-md flex-shrink-0 hover:from-blue-600 hover:to-blue-700 active:scale-95 transition-all"
-					:aria-label="'POS Next'"
-					:title="__('POS Next')"
-				>
-					<svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-						<path d="M20 7h-4V4c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v3H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2zM10 4h4v3h-4V4zm10 16H4V9h16v11z"/>
-					</svg>
-				</button>
-			</div>
-
-			<!-- Main Header Content -->
 			<div class="flex-1 flex justify-between items-center gap-1 sm:gap-2 px-2 sm:px-4 md:px-6">
-				<!-- Left Side: Brand Info -->
-				<div class="flex items-center gap-1 sm:gap-4 min-w-0 flex-1 overflow-hidden">
-					<div class="min-w-0 flex-shrink overflow-hidden">
-						<div class="flex items-center gap-1 sm:gap-2">
-							<h1 class="text-xs sm:text-base font-bold text-gray-900 truncate flex-shrink">{{ 'POS Next' }}</h1>
-							<span class="hidden sm:inline-flex relative items-center px-1 sm:px-2 py-0.5 text-[8px] sm:text-[10px] font-bold bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-md shadow-sm hover:shadow-md transition-shadow flex-shrink-0">
-								<span class="absolute inset-0 bg-white/20 rounded-md animate-pulse"></span>
-								<span class="relative">v{{ appVersion }}</span>
-							</span>
-						</div>
-						<p v-if="profileName" class="text-[9px] sm:text-xs text-gray-500 truncate hidden sm:block mt-0.5">{{ profileName }}</p>
-					</div>
-
-					<!-- Time and Shift Duration - Compact on mobile -->
-					<div class="hidden lg:flex items-center gap-4 ms-6 flex-shrink-0">
-						<!-- Current Time -->
-						<StatusBadge
-							variant="blue"
-							size="sm"
-							:icon="timeIcon"
-							:text="currentTime"
-						/>
-
-						<!-- Shift Duration -->
-						<StatusBadge
-							v-if="hasOpenShift && shiftDuration"
-							variant="green"
-							size="xs"
-							:icon="shiftIcon"
-							:label="__('Shift Open:')"
-							:value="shiftDuration"
-						/>
-					</div>
-
-					<!-- Mobile Time Display - Very compact -->
-					<div class="flex lg:hidden items-center text-[10px] text-gray-600 font-medium flex-shrink-0 ms-1">
-						<span class="hidden xs:inline whitespace-nowrap">{{ currentTime }}</span>
-					</div>
+				<!-- Left Side: Profile and User -->
+				<div class="flex items-baseline gap-2 min-w-0 flex-1 overflow-hidden">
+					<h1 v-if="profileName" class="text-sm sm:text-base font-bold text-gray-900 truncate">{{ profileName }}</h1>
+					<span class="text-xs sm:text-sm text-gray-500 truncate">{{ userName }}</span>
 				</div>
 
 				<!-- Right Side: Controls -->
@@ -214,20 +166,6 @@
 						</div>
 					</div>
 
-					<!-- Printer - Visible only while shift is open -->
-					<div v-if="hasOpenShift" class="hidden md:block relative">
-						<ActionButton
-							:icon="printerIcon"
-							:title="silentPrintEnabled ? (qzConnected ? __('Silent Print: Connected') : __('Silent Print: Disconnected')) : __('Print Invoice')"
-							@click="$emit('printer-click')"
-						/>
-						<span
-							v-if="silentPrintEnabled"
-							class="absolute top-0.5 end-0.5 w-2 h-2 rounded-full border border-white"
-							:class="qzConnected ? 'bg-green-500' : 'bg-red-500'"
-						></span>
-					</div>
-
 					<!-- Refresh -->
 					<ActionButton
 						:icon="refreshIcon"
@@ -239,13 +177,6 @@
 						]"
 						:aria-label="isRefreshing ? __('Refreshing...') : __('Refresh items and customers')"
 					/>
-
-					<div class="w-px h-4 sm:h-6 bg-gray-200 hidden md:block"></div>
-
-					<!-- Language Switcher - Hidden on mobile, shown in UserMenu instead -->
-					<div class="hidden md:block">
-						<LanguageSwitcher />
-					</div>
 
 					<div class="w-px h-4 sm:h-6 bg-gray-200"></div>
 
@@ -273,21 +204,15 @@
 
 <script setup>
 import ActionButton from "@/components/common/ActionButton.vue"
-import StatusBadge from "@/components/common/StatusBadge.vue"
 import UserMenu from "@/components/common/UserMenu.vue"
-import LanguageSwitcher from "@/components/common/LanguageSwitcher.vue"
 import { DEFAULT_LOCALE } from "@/utils/currency"
 import { ref } from "vue"
-import { version } from "../../../package.json"
 
 const showCacheTooltip = ref(false)
-const appVersion = version
 
 const emit = defineEmits([
 	"sync-click",
-	"printer-click",
 	"refresh-click",
-	"menu-click",
 	"logout",
 	"menu-opened",
 	"menu-closed",
@@ -309,18 +234,6 @@ function handleBlur(event) {
 }
 
 const props = defineProps({
-	currentTime: {
-		type: String,
-		required: true,
-	},
-	shiftDuration: {
-		type: String,
-		default: null,
-	},
-	hasOpenShift: {
-		type: Boolean,
-		default: false,
-	},
 	profileName: {
 		type: String,
 		default: null,
@@ -345,10 +258,6 @@ const props = defineProps({
 		type: Number,
 		default: 0,
 	},
-	isAnyDialogOpen: {
-		type: Boolean,
-		default: false,
-	},
 	cacheSyncing: {
 		type: Boolean,
 		default: false,
@@ -362,14 +271,6 @@ const props = defineProps({
 		default: false,
 	},
 	isRefreshing: {
-		type: Boolean,
-		default: false,
-	},
-	silentPrintEnabled: {
-		type: Boolean,
-		default: false,
-	},
-	qzConnected: {
 		type: Boolean,
 		default: false,
 	},
@@ -442,11 +343,6 @@ function formatCompactNumber(num) {
 }
 
 // SVG Path Icons
-const timeIcon = "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-const shiftIcon =
-	"M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"
-const printerIcon =
-	"M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"
 const refreshIcon =
 	"M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
 </script>
