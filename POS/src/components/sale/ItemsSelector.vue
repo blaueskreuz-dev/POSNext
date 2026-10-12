@@ -51,15 +51,18 @@
 				class="flex-1 overflow-y-auto p-1.5 sm:p-3"
 				style="min-height: 0;"
 			>
-				<div class="grid grid-cols-4 gap-2 sm:gap-3">
+				<div class="grid grid-cols-6 gap-2 sm:gap-3">
 					<div
-						v-for="item in displayedItems"
+						v-for="(item, index) in displayedItems"
 						:key="item.item_code"
 						@touchstart.passive="getOptimizedClickHandler(item).touchstart"
 						@touchmove.passive="getOptimizedClickHandler(item).touchmove"
 						@touchend.passive="getOptimizedClickHandler(item).touchend"
 						@click="getOptimizedClickHandler(item).click"
-						class="h-20 flex items-center justify-center p-2 rounded-xl bg-primary hover:bg-primary-hover active:bg-primary-active shadow-md text-white touch-manipulation transition-colors duration-75 cursor-pointer select-none"
+						:class="[
+							getTileTheme(index),
+							'h-40 flex items-center justify-center p-2 rounded-xl shadow-md text-white touch-manipulation transition-colors duration-75 cursor-pointer select-none'
+						]"
 					>
 						<h3 class="text-sm sm:text-base font-semibold text-center leading-tight line-clamp-3 break-words">
 							{{ item.item_name }}
@@ -980,6 +983,26 @@ function handleClickOutside(event) {
 		}
 	}
 }
+
+// Apply colors to item tiles
+const tileThemePalette = [
+  { bg: 'bg-blue-600', hover: 'hover:bg-blue-700', active: 'active:bg-blue-800' },
+  { bg: 'bg-green-600', hover: 'hover:bg-green-700', active: 'active:bg-green-800' },
+  { bg: 'bg-amber-600', hover: 'hover:bg-amber-700', active: 'active:bg-amber-800' },
+  { bg: 'bg-red-600', hover: 'hover:bg-red-700', active: 'active:bg-red-800' },
+  { bg: 'bg-cyan-600', hover: 'hover:bg-cyan-700', active: 'active:bg-cyan-800' },
+  { bg: 'bg-purple-600', hover: 'hover:bg-purple-700', active: 'active:bg-purple-800' },
+  { bg: 'bg-orange-600', hover: 'hover:bg-orange-700', active: 'active:bg-orange-800' },
+  { bg: 'bg-teal-600', hover: 'hover:bg-teal-700', active: 'active:bg-teal-800' },
+  { bg: 'bg-pink-600', hover: 'hover:bg-pink-700', active: 'active:bg-pink-800' },
+  { bg: 'bg-violet-600', hover: 'hover:bg-violet-700', active: 'active:bg-violet-800' },
+  { bg: 'bg-yellow-600', hover: 'hover:bg-yellow-700', active: 'active:bg-yellow-800' }
+];
+
+const getTileTheme = (index) => {
+  const theme = tileThemePalette[index % tileThemePalette.length];
+  return `${theme.bg} ${theme.hover} ${theme.active}`;
+};
 
 // Check if an item can be added to cart based on stock
 </script>
