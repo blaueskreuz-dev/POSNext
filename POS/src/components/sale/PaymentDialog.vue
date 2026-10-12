@@ -4,7 +4,7 @@
 			<!-- Two Column Layout - auto-sized on mobile, constrained on desktop -->
 			<div
 				:class="[
-					'grid grid-cols-1 lg:grid-cols-5 items-stretch',
+					'grid grid-cols-1 lg:grid-cols-2 items-stretch lg:gap-6',
 					dynamicGap,
 					isMobileView ? '' : 'overflow-hidden'
 				]"
@@ -13,7 +13,7 @@
 				<!-- Left Column (2/5): Sales Person + Invoice Summary -->
 				<div
 					:class="[
-						'lg:col-span-2 flex flex-col min-h-0',
+						'flex flex-col min-h-0',
 						isSmallMobile ? 'gap-1' : 'gap-1.5',
 						isMobileView ? 'overflow-visible' : 'overflow-hidden'
 					]"
@@ -282,60 +282,33 @@
 						</span>
 					</div>
 
-					<!-- Invoice Summary -->
-					<div class="bg-white rounded-lg border border-gray-200 overflow-hidden flex flex-col flex-1 min-h-0">
-						<!-- Header -->
-						<div :class="['px-3 border-b border-gray-200 bg-gray-50', isCompactMode ? 'py-1.5' : 'py-2']">
-							<div class="flex items-center justify-between">
-								<h3 :class="['text-gray-900 font-semibold text-start', dynamicTextSize.header]">{{ __('Invoice Summary') }}</h3>
-								<span class="text-gray-500 text-xs text-end">{{ items.length === 1 ? __('1 item') : __('{0} items', [items.length]) }}</span>
-							</div>
-							<div v-if="customer" class="text-gray-600 text-xs mt-0.5 text-start">
-								{{ customer?.customer_name || customer?.name || customer }}
-							</div>
+					<!-- Invoice Summary (payments + totals, the cart behind the dialog shows the items) -->
+					<div class="bg-white rounded-xl border border-gray-200 overflow-hidden flex flex-col flex-1 min-h-0">
+						<!-- Payments List Header -->
+						<div class="flex items-center justify-between px-3 py-2 border-b border-gray-200 text-sm font-semibold text-gray-900">
+							<span class="text-start">{{ __('Payment Method') }}</span>
+							<span class="text-end">{{ __('Amount') }}</span>
 						</div>
 
-						<!-- Items List (scrollable, takes available space) -->
-						<div v-if="items.length > 0" class="flex-1 overflow-y-auto divide-y divide-gray-100 min-h-0">
+						<!-- Payments List (one row per logged payment, scrollable) -->
+						<div class="flex-1 overflow-y-auto divide-y divide-gray-100 min-h-0">
 							<div
-								v-for="(item, index) in items"
-								:key="index"
-								:class="['px-3 py-2 flex flex-col gap-1', item.is_free_item ? 'bg-green-50' : 'hover:bg-gray-50']"
+								v-for="(payment, index) in paymentLog"
+								:key="payment.id"
+								class="flex items-center justify-between gap-2 ps-3 pe-1 h-11 text-sm"
 							>
-								<!-- Main Item -->
-								<div class="flex items-start justify-between gap-2">
-									<div class="flex-1 min-w-0 text-start">
-										<div :class="['font-medium text-sm truncate', item.is_free_item ? 'text-green-700' : 'text-gray-900']">{{ item.item_name || item.item_code }}<span v-if="item.is_free_item" class="text-xs font-bold"> ({{ __('Free') }})</span></div>
-										<div class="text-xs text-gray-500 mt-0.5">
-											{{ formatCurrency(item.rate || item.price_list_rate) }} × {{ item.qty || item.quantity }}
-										</div>
-									</div>
-									<div class="text-sm font-semibold text-gray-900 text-end">
-										{{ formatCurrency(item.amount || ((item.qty || item.quantity) * (item.rate || item.price_list_rate))) }}
-									</div>
-								</div>
-
-								<!-- Free Item (same-item case: free qty attached to a paid item) -->
-								<div v-if="!item.is_free_item && item?.free_qty > 0" class="flex justify-between items-center gap-2 bg-green-50 px-2 py-1 rounded border border-green-100">
-									<div class="flex-1 min-w-0 text-start">
-										<div class="font-medium text-xs text-green-700 truncate flex items-center gap-1">
-											<svg class="w-3 h-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-												<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-											</svg>
-											{{ item.item_name || item.item_code }} ({{ __('Free') }})
-										</div>
-										<div class="text-[10px] text-green-600 mt-0.5 opacity-80 ps-4">
-											{{ item.free_qty }} {{ item.uom || item.stock_uom }}
-										</div>
-									</div>
-									<div class="text-xs font-bold text-green-700 text-end">
-										{{ formatCurrency(0) }}
-									</div>
-								</div>
+								<span class="flex-1 min-w-0 truncate text-start text-gray-900">{{ __(payment.mode_of_payment) }}</span>
+								<span class="font-semibold text-gray-900 text-end">{{ formatCurrency(payment.amount) }}</span>
+								<button
+									@click="removeLoggedPayment(index)"
+									class="w-9 h-9 flex items-center justify-center rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+									:title="__('Remove payment')"
+								>
+									<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+									</svg>
+								</button>
 							</div>
-						</div>
-						<div v-else class="flex-1 px-3 py-4 text-center text-gray-400 text-sm flex items-center justify-center">
-							{{ __('No items') }}
 						</div>
 
 						<!-- Amounts Breakdown -->
@@ -443,7 +416,7 @@
 								<!-- Paid (Left Half) -->
 								<div :class="['bg-blue-50 text-center', isCompactMode ? 'p-2' : 'p-3']">
 									<div class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">{{ __('Paid') }}</div>
-									<div :class="['font-bold text-blue-600', dynamicTextSize.amount]">{{ formatCurrency(totalPaid) }}</div>
+									<div :class="['font-bold text-primary', dynamicTextSize.amount]">{{ formatCurrency(totalPaid) }}</div>
 								</div>
 								<!-- Remaining / Change (Right Half) -->
 								<div v-if="remainingAmount > 0 && !applyWriteOff" :class="['bg-orange-50 text-center', isCompactMode ? 'p-2' : 'p-3']">
@@ -521,32 +494,19 @@
 				<div
 					ref="rightColumnRef"
 					:class="[
-						'lg:col-span-3 bg-gray-50 rounded-lg border border-gray-200 flex flex-col',
-						isSmallMobile ? 'p-1.5' : 'p-2 lg:p-3'
+						'flex flex-col',
+						isCompactMode ? 'lg:gap-2' : 'lg:gap-3'
 					]"
 					:style="isMobileView ? {} : { minHeight: rightColumnMinHeight }"
 				>
 					<!-- Payment Methods -->
-					<div :class="isSmallMobile ? 'mb-1' : 'mb-1.5 lg:mb-3'">
-						<div :class="['flex items-center justify-between', isSmallMobile ? 'mb-0.5' : 'mb-1 lg:mb-2']">
-							<div :class="['text-start font-semibold text-gray-500 uppercase tracking-wide', isSmallMobile ? 'text-[10px]' : 'text-xs']">{{ __('Payment Method') }}</div>
-							<!-- Clear All Payments Button -->
-							<button
-								v-if="paymentEntries.length > 0"
-								@click="clearAll"
-								:class="['text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors', isSmallMobile ? 'p-1' : 'p-1.5']"
-								:title="__('Clear all payments')"
-							>
-								<svg :class="isSmallMobile ? 'w-4 h-4' : 'w-5 h-5'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-								</svg>
-							</button>
-						</div>
+					<div :class="isSmallMobile ? 'mb-1' : 'mb-1.5 lg:mb-0'">
 						<div v-if="loadingPaymentMethods" class="flex items-center gap-2">
 							<div :class="['animate-spin rounded-full border-b-2 border-blue-500', isSmallMobile ? 'h-4 w-4' : 'h-5 w-5']"></div>
 							<span :class="['text-gray-500', isSmallMobile ? 'text-xs' : 'text-sm']">{{ __('Loading...') }}</span>
 						</div>
-						<div v-else-if="filteredPaymentMethods.length > 0" :class="['flex flex-wrap', isSmallMobile ? 'gap-1' : 'gap-1.5 lg:gap-2']">
+						<!-- Payment method tiles (same look as the item selector tiles) -->
+						<div v-else-if="filteredPaymentMethods.length > 0" :class="['grid grid-cols-2 lg:grid-cols-4', isSmallMobile ? 'gap-1.5' : 'gap-2', !isCompactMode && 'lg:gap-3']">
 							<button
 								v-for="method in filteredPaymentMethods"
 								:key="method.mode_of_payment"
@@ -556,30 +516,14 @@
 								@pointercancel="onPaymentMethodCancel"
 								:disabled="isWalletPaymentMethod(method.mode_of_payment) && availableWalletBalance <= 0 && getMethodTotal(method.mode_of_payment) === 0"
 								:class="[
-									'inline-flex items-center rounded-lg border-2 transition-all font-medium select-none touch-none',
-									isSmallMobile ? 'gap-0.5 px-1.5 h-7 text-[10px]' : 'gap-1 lg:gap-2 px-2.5 lg:px-4 h-8 text-xs lg:h-11 lg:text-sm',
-									lastSelectedMethod?.mode_of_payment === method.mode_of_payment
-										? isWalletPaymentMethod(method.mode_of_payment)
-											? 'border-amber-500 bg-amber-50 text-amber-700'
-											: 'border-blue-500 bg-blue-50 text-blue-700'
-										: isWalletPaymentMethod(method.mode_of_payment)
-											? availableWalletBalance > 0
-												? 'border-amber-300 bg-amber-50 hover:border-amber-500 hover:bg-amber-100 text-amber-700'
-												: 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed opacity-60'
-											: 'border-gray-200 bg-white hover:border-blue-400 hover:bg-blue-50 text-gray-700'
+									paymentTileClass,
+									paymentTileStateClass(lastSelectedMethod?.mode_of_payment === method.mode_of_payment)
 								]"
 							>
-								<span :class="isSmallMobile ? 'text-xs' : 'text-sm lg:text-lg'">{{ isWalletPaymentMethod(method.mode_of_payment) ? '🎁' : getPaymentIcon(method.type) }}</span>
-								<span class="truncate max-w-[80px] lg:max-w-none">{{ __(method.mode_of_payment) }}</span>
-								<!-- Wallet Balance Badge -->
-								<span v-if="isWalletPaymentMethod(method.mode_of_payment) && walletInfo.wallet_enabled"
-									:class="['font-bold rounded', isSmallMobile ? 'text-[8px] px-1 py-0.5' : 'text-[10px] px-1.5 py-0.5', availableWalletBalance > 0 ? 'text-amber-700 bg-amber-100' : 'text-gray-500 bg-gray-200']">
+								<span class="text-sm sm:text-base font-semibold text-center leading-tight line-clamp-2 break-words">{{ __(method.mode_of_payment) }}</span>
+								<!-- Wallet Balance -->
+								<span v-if="isWalletPaymentMethod(method.mode_of_payment) && walletInfo.wallet_enabled" class="text-xs opacity-90">
 									{{ formatCurrency(availableWalletBalance) }}
-								</span>
-								<!-- Payment Amount Badge -->
-								<span v-if="getMethodTotal(method.mode_of_payment) > 0"
-									:class="['font-bold rounded', isSmallMobile ? 'text-[8px] px-0.5 py-0.5' : 'text-xs px-1 py-0.5', isWalletPaymentMethod(method.mode_of_payment) ? 'text-amber-600 bg-amber-200' : 'text-blue-600 bg-blue-100']">
-									{{ formatCurrency(getMethodTotal(method.mode_of_payment)) }}
 								</span>
 							</button>
 							<!-- Credit Balance as Payment Method -->
@@ -587,21 +531,23 @@
 								v-if="customerCreditEnabled && (remainingAvailableCredit > 0 || getMethodTotal('Customer Credit') > 0)"
 								@click="applyCustomerCredit"
 								:disabled="remainingAmount === 0 || remainingAvailableCredit === 0"
-								:class="[
-									'inline-flex items-center rounded-lg border-2 transition-all font-medium',
-									isSmallMobile ? 'gap-0.5 px-1.5 h-7 text-[10px]' : 'gap-1 lg:gap-2 px-2.5 lg:px-4 h-8 text-xs lg:h-11 lg:text-sm',
-									remainingAmount === 0 || remainingAvailableCredit === 0 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer',
-									getMethodTotal('Customer Credit') > 0
-										? 'border-emerald-500 bg-emerald-50 text-emerald-700'
-										: 'border-emerald-300 bg-emerald-50 hover:border-emerald-500 hover:bg-emerald-100 text-emerald-700'
-								]"
+								:class="[paymentTileClass, paymentTileStateClass(false)]"
 							>
-								<span :class="isSmallMobile ? 'text-xs' : 'text-sm lg:text-lg'">💳</span>
-								<span class="truncate">{{ __('Credit Balance') }}</span>
-								<span v-if="getMethodTotal('Customer Credit') > 0"
-									:class="['font-bold text-emerald-600 bg-emerald-100 rounded', isSmallMobile ? 'text-[8px] px-0.5 py-0.5' : 'text-xs px-1 py-0.5']">
+								<span class="text-sm sm:text-base font-semibold text-center leading-tight line-clamp-2 break-words">{{ __('Credit Balance') }}</span>
+								<span v-if="getMethodTotal('Customer Credit') > 0" class="text-xs font-bold bg-blue-50 text-primary rounded px-1.5 py-0.5">
 									{{ formatCurrency(getMethodTotal('Customer Credit')) }}
 								</span>
+							</button>
+							<!-- Clear All Payments -->
+							<button
+								v-if="paymentEntries.length > 0"
+								@click="clearAll"
+								:class="[
+									isSmallMobile ? 'h-14' : 'h-16',
+									'flex items-center justify-center p-2 rounded-xl border-2 border-red-200 bg-white text-red-600 hover:bg-red-50 active:bg-red-100 touch-manipulation transition-colors duration-75 select-none'
+								]"
+							>
+								<span class="text-sm sm:text-base font-semibold text-center leading-tight">{{ __('Clear all payments') }}</span>
 							</button>
 						</div>
 						<div v-else :class="['text-gray-500', isSmallMobile ? 'text-xs' : 'text-sm']">{{ __('No payment methods available') }}</div>
@@ -623,59 +569,14 @@
 						</div>
 					</div>
 
-					<!-- Quick Amounts Area (Desktop) - Consistent layout for all payment methods -->
-					<div v-if="lastSelectedMethod && remainingAmount > 0" class="hidden lg:block" :class="isCompactMode ? 'mb-2' : 'mb-3'">
-						<div class="text-start text-xs font-medium text-gray-600 mb-1.5">
-							{{ (isExactAmountModeActive && !isCashPaymentMethod(lastSelectedMethod))
-								? __('Exact amount only')
-								: __('Quick amounts for {0}', [__(lastSelectedMethod.mode_of_payment)])
-							}}
-						</div>
-						<div class="grid grid-cols-4 gap-1.5">
-							<button
-								v-for="amount in quickAmounts"
-								:key="amount"
-								@click="addCustomPayment(lastSelectedMethod, amount)"
-								:disabled="isQuickAmountDisabled(amount)"
-								:class="[
-									'font-semibold rounded-lg border-2 transition-all',
-									isCompactMode ? 'px-2 py-2 text-sm' : 'px-2 py-2 text-sm',
-									isQuickAmountDisabled(amount)
-										? 'bg-gray-50 border-gray-100 text-gray-300 cursor-not-allowed'
-										: 'bg-white border-gray-200 hover:border-blue-400 hover:bg-blue-50 text-gray-700 hover:text-blue-600'
-								]"
-							>
-								{{ formatCurrency(amount) }}
-							</button>
-						</div>
-					</div>
-					<div v-else-if="!lastSelectedMethod && remainingAmount > 0" class="hidden lg:block" :class="['bg-blue-50 rounded-lg text-center', isCompactMode ? 'mb-2 p-2' : 'mb-3 p-3 lg:p-2']">
+					<div v-if="!lastSelectedMethod && remainingAmount > 0" class="hidden lg:block bg-blue-50 rounded-xl text-center p-2">
 						<p class="text-xs text-blue-600">{{ __('Select a payment method to start') }}</p>
 					</div>
 
 					<!-- Mobile Payment Section - Dynamic & Responsive -->
 					<div class="lg:hidden flex flex-col" :class="isSmallMobile ? 'gap-1' : 'gap-1.5'">
-						<!-- Mobile Quick Amounts + Custom Input (consistent layout for all payment methods) -->
+						<!-- Mobile Custom Input -->
 						<div v-if="lastSelectedMethod && remainingAmount > 0" :class="['space-y-1 flex-shrink-0', isSmallMobile ? 'mb-1' : 'mb-1.5']">
-							<!-- Quick Amounts Row (4 columns, responsive sizing) -->
-							<div class="grid grid-cols-4" :class="isSmallMobile ? 'gap-0.5' : 'gap-1'">
-								<button
-									v-for="amount in quickAmounts"
-									:key="amount"
-									@click="addCustomPayment(lastSelectedMethod, amount)"
-									:disabled="isQuickAmountDisabled(amount)"
-									:class="[
-										'font-semibold rounded border transition-colors',
-										isSmallMobile ? 'py-1 text-[10px]' : 'py-1.5 text-xs',
-										isQuickAmountDisabled(amount)
-											? 'bg-gray-50 border-gray-100 text-gray-300 cursor-not-allowed'
-											: 'bg-white border-gray-200 text-gray-700 active:bg-blue-50 active:border-blue-400'
-									]"
-								>
-									{{ formatCurrency(amount) }}
-								</button>
-							</div>
-
 							<!-- Custom Amount Row (disabled for non-cash when exact amount mode is active) -->
 							<div :class="['flex', isSmallMobile ? 'gap-0.5' : 'gap-1']">
 								<div class="relative flex-1">
@@ -791,8 +692,8 @@
 								:class="[
 									'w-full font-bold rounded-lg flex items-center justify-center',
 									isSubmitting
-										? 'bg-blue-300 text-white cursor-not-allowed'
-										: 'bg-blue-500 text-white active:bg-blue-600',
+										? 'bg-primary opacity-50 text-white cursor-not-allowed'
+										: 'bg-primary text-white hover:bg-primary-hover active:bg-primary-active',
 									mobileButtonSize.height, mobileButtonSize.text, mobileButtonSize.gap
 								]"
 							>
@@ -809,104 +710,64 @@
 					</div>
 					<!-- End Mobile Payment Section -->
 
-					<!-- Numeric Keypad (Desktop only) -->
-					<div :class="['hidden lg:block bg-white rounded-lg border border-gray-200', isCompactMode ? 'p-2' : 'p-3']">
+					<!-- Numeric Keypad (Desktop only, same look as PriceKeypadDialog) -->
+					<div class="hidden lg:block select-none">
 						<!-- Amount Display -->
-						<div :class="['bg-gray-100 rounded-lg', isCompactMode ? 'p-2 mb-2' : 'p-3 mb-3']">
-							<div dir="ltr" :class="['font-bold text-gray-900 text-center flex items-center justify-center gap-2', isCompactMode ? 'text-xl' : 'text-2xl']">
-								<span>{{ currencySymbol }}</span>
-								<span class="font-mono tracking-wider">{{ numpadDisplay || '0.00' }}</span>
-							</div>
+						<div dir="ltr" :class="['rounded-xl bg-gray-100 px-4 text-end tabular-nums', isCompactMode ? 'py-2 mb-2' : 'py-3 mb-3']">
+							<span class="text-lg font-medium text-gray-500 me-2">{{ currencySymbol }}</span>
+							<span
+								:class="[
+									'font-bold',
+									isCompactMode ? 'text-[32px] leading-none' : 'text-[40px] leading-none',
+									numpadDisplay ? 'text-gray-900' : 'text-gray-400',
+								]"
+							>{{ numpadDisplay || '0.00' }}</span>
 						</div>
 
-						<!-- Keypad Grid (4 columns) -->
-						<div :class="['grid grid-cols-4', isCompactMode ? 'gap-1' : 'gap-1.5']">
-							<!-- Row 1: 7, 8, 9, Backspace -->
+						<div :class="['grid grid-cols-4', isCompactMode ? 'gap-2' : 'gap-3']">
 							<button
-								v-for="num in ['7', '8', '9']"
-								:key="num"
-								@click="numpadInput(num)"
-								:class="[dynamicNumpadSize.key, 'text-xl font-semibold rounded-lg bg-gray-50 border-2 border-gray-200 hover:border-blue-400 hover:bg-blue-50 text-gray-800 transition-all active:scale-95']"
-							>
-								{{ num }}
-							</button>
-							<button
-								@click="numpadBackspace"
-								:class="[dynamicNumpadSize.key, 'text-lg font-semibold rounded-lg bg-red-50 border-2 border-red-200 hover:border-red-400 hover:bg-red-100 text-red-600 transition-all active:scale-95 flex items-center justify-center']"
-							>
-								<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M3 12l6.414 6.414a2 2 0 001.414.586H19a2 2 0 002-2V7a2 2 0 00-2-2h-8.172a2 2 0 00-1.414.586L3 12z"/>
-								</svg>
-							</button>
-
-							<!-- Row 2: 4, 5, 6, Clear -->
-							<button
-								v-for="num in ['4', '5', '6']"
-								:key="num"
-								@click="numpadInput(num)"
-								:class="[dynamicNumpadSize.key, 'text-xl font-semibold rounded-lg bg-gray-50 border-2 border-gray-200 hover:border-blue-400 hover:bg-blue-50 text-gray-800 transition-all active:scale-95']"
-							>
-								{{ num }}
-							</button>
-							<button
-								@click="numpadClear"
-								:class="[dynamicNumpadSize.key, 'text-lg font-semibold rounded-lg bg-orange-50 border-2 border-orange-200 hover:border-orange-400 hover:bg-orange-100 text-orange-600 transition-all active:scale-95']"
-							>
-								C
-							</button>
-
-							<!-- Row 3: 1, 2, 3, Add (spans 2 rows) -->
-							<button
-								v-for="num in ['1', '2', '3']"
-								:key="num"
-								@click="numpadInput(num)"
-								:class="[dynamicNumpadSize.key, 'text-xl font-semibold rounded-lg bg-gray-50 border-2 border-gray-200 hover:border-blue-400 hover:bg-blue-50 text-gray-800 transition-all active:scale-95']"
-							>
-								{{ num }}
-							</button>
-							<button
-								@click="numpadAddPayment"
-								:disabled="!numpadValue || numpadValue <= 0 || !lastSelectedMethod"
+								v-for="key in numpadDigitKeys"
+								:key="key.value"
+								:style="key.style"
+								:disabled="key.value === '.' && numpadDisplay.includes('.')"
 								:class="[
-									dynamicNumpadSize.addBtn, 'row-span-2 text-xl font-bold rounded-xl transition-all active:scale-95',
-									!numpadValue || numpadValue <= 0 || !lastSelectedMethod
-										? 'bg-gray-100 border-2 border-gray-200 text-gray-400 cursor-not-allowed'
-										: 'bg-blue-600 border-2 border-blue-600 hover:bg-blue-700 text-white'
+									dynamicNumpadSize.key,
+									'rounded-xl bg-gray-50 border border-gray-200 text-2xl font-semibold text-gray-900 active:bg-gray-200 disabled:text-gray-300 transition-colors duration-75 touch-manipulation'
 								]"
+								@click="numpadInput(key.value)"
 							>
+								{{ key.value }}
+							</button>
+
+							<button
+								style="grid-column: 4; grid-row: 1"
+								:class="[dynamicNumpadSize.key, 'rounded-xl bg-gray-200 text-gray-700 flex items-center justify-center active:bg-gray-300 transition-colors duration-75 touch-manipulation']"
+								:aria-label="__('Backspace')"
+								@click="numpadBackspace"
+							>
+								<FeatherIcon name="delete" class="w-6 h-6" />
+							</button>
+							<button
+								style="grid-column: 4; grid-row: 2"
+								:class="[dynamicNumpadSize.key, 'rounded-xl bg-gray-200 text-base font-semibold text-gray-700 active:bg-gray-300 transition-colors duration-75 touch-manipulation']"
+								@click="numpadClear"
+							>
+								{{ __('Clear') }}
+							</button>
+							<button
+								style="grid-column: 4; grid-row: 3 / span 2"
+								:disabled="!numpadValue || numpadValue <= 0 || !lastSelectedMethod"
+								class="rounded-xl bg-green-600 text-white text-lg font-bold flex flex-col items-center justify-center gap-1 active:bg-green-700 disabled:bg-gray-200 disabled:text-gray-400 transition-colors duration-75 touch-manipulation"
+								@click="numpadAddPayment"
+							>
+								<FeatherIcon name="check" class="w-7 h-7" />
 								{{ __('Add') }}
 							</button>
-
-							<!-- Row 4: 00, 0, . -->
-							<button
-								@click="numpadInput('00')"
-								:class="[isCompactMode ? 'h-12' : 'h-16', 'text-2xl font-semibold rounded-xl bg-gray-50 border-2 border-gray-200 hover:border-blue-400 hover:bg-blue-50 text-gray-800 transition-all active:scale-95']"
-							>
-								00
-							</button>
-							<button
-								@click="numpadInput('0')"
-								:class="[isCompactMode ? 'h-12' : 'h-16', 'text-2xl font-semibold rounded-xl bg-gray-50 border-2 border-gray-200 hover:border-blue-400 hover:bg-blue-50 text-gray-800 transition-all active:scale-95']"
-							>
-								0
-							</button>
-							<button
-								@click="numpadInput('.')"
-								:disabled="numpadDisplay.includes('.')"
-								:class="[
-									isCompactMode ? 'h-12' : 'h-16', 'text-2xl font-semibold rounded-xl transition-all active:scale-95',
-									numpadDisplay.includes('.')
-										? 'bg-gray-100 border-2 border-gray-200 text-gray-400 cursor-not-allowed'
-										: 'bg-gray-50 border-2 border-gray-200 hover:border-blue-400 hover:bg-blue-50 text-gray-800'
-								]"
-							>
-								.
-							</button>
-							</div>
 						</div>
+					</div>
 
 					<!-- Action Buttons - Below Keypad (Desktop only) -->
-					<div :class="['hidden lg:flex items-center gap-2', isCompactMode ? 'mt-2' : 'mt-4']">
+					<div :class="['hidden lg:flex items-center', isCompactMode ? 'gap-2' : 'gap-3']">
 						<!-- Pay on Account Button (if credit sales enabled) -->
 						<button
 							v-if="allowCreditSale"
@@ -914,7 +775,7 @@
 							:disabled="paymentEntries.length > 0 || isSubmitting"
 							:class="[
 								'flex-1 inline-flex items-center justify-center gap-2 transition-colors focus:outline-none',
-								dynamicButtonHeight, 'text-sm font-semibold px-4 rounded-lg',
+								dynamicButtonHeight, 'text-base font-semibold px-4 rounded-xl',
 								paymentEntries.length > 0 || isSubmitting
 									? 'bg-orange-300 text-white cursor-not-allowed'
 									: 'bg-orange-500 text-white hover:bg-orange-600 active:bg-orange-700 focus-visible:ring-2 focus-visible:ring-orange-400'
@@ -936,10 +797,10 @@
 							:disabled="!canComplete || isSubmitting"
 							:class="[
 								'flex-1 inline-flex items-center justify-center gap-2 transition-colors focus:outline-none',
-								dynamicButtonHeight, 'text-sm font-semibold px-5 rounded-lg',
+								dynamicButtonHeight, 'text-base font-semibold px-5 rounded-xl',
 								!canComplete || isSubmitting
-									? 'bg-blue-300 text-white cursor-not-allowed'
-									: 'bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800 focus-visible:ring-2 focus-visible:ring-blue-400'
+									? 'bg-primary opacity-50 text-white cursor-not-allowed'
+									: 'bg-primary text-white hover:bg-primary-hover active:bg-primary-active focus-visible:ring-2 focus-visible:ring-blue-400'
 							]"
 						>
 							<svg v-if="isSubmitting" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -959,41 +820,6 @@
 			</template>
 	</Dialog>
 
-	<!-- Nested Radix Dialog for overpayment confirmation -->
-	<Dialog
-		v-model="overpayConfirmVisible"
-		:options="{ size: 'xs' }"
-	>
-		<template #body>
-			<div class="p-5">
-				<div class="flex items-start gap-3 mb-4">
-					<div class="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 bg-amber-50 border border-amber-200">
-						<svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-							<path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
-						</svg>
-					</div>
-					<div class="min-w-0">
-						<h3 class="text-sm font-semibold text-gray-900">{{ overpayConfirmTitle }}</h3>
-						<p class="text-sm text-gray-500 mt-1 leading-relaxed">{{ overpayConfirmMessage }}</p>
-					</div>
-				</div>
-				<div class="flex gap-2.5 justify-end">
-					<button
-						@click="resolveOverpayConfirm(false)"
-						class="px-4 py-1.5 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 active:bg-gray-100 transition-colors"
-					>
-						{{ __("Cancel") }}
-					</button>
-					<button
-						@click="resolveOverpayConfirm(true)"
-						class="px-4 py-1.5 rounded-lg text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 transition-colors"
-					>
-						{{ __("Continue") }}
-					</button>
-				</div>
-			</div>
-		</template>
-	</Dialog>
 </template>
 
 <script setup>
@@ -1004,16 +830,14 @@ import {
 	getCurrencySymbol,
 	roundCurrency,
 } from "@/utils/currency"
-import { getPaymentIcon } from "@/utils/payment"
 import { offlineWorker } from "@/utils/offline/workerClient"
 import { logger } from "@/utils/logger"
-import { Dialog, createResource, call } from "frappe-ui"
+import { Dialog, FeatherIcon, createResource, call } from "frappe-ui"
 import { computed, ref, watch, nextTick } from "vue"
 import { useToast } from "@/composables/useToast"
 import { useLongPress } from "@/composables/useLongPress"
 import { usePaymentNumpad } from "@/composables/usePaymentNumpad"
 import { useResponsivePayment } from "@/composables/useResponsivePayment"
-import { useQuickAmounts } from "@/composables/useQuickAmounts"
 
 const log = logger.create("PaymentDialog")
 const settingsStore = usePOSSettingsStore()
@@ -1108,6 +932,10 @@ const loadingPaymentMethods = ref(false)
 const lastSelectedMethod = ref(null)
 const customAmount = ref("")
 const paymentEntries = ref([])
+// Every individual payment as entered, for display. paymentEntries stays
+// consolidated per mode of payment because that is what gets submitted.
+const paymentLog = ref([])
+let paymentLogId = 0
 const customerCredit = ref([])
 const customerBalance = ref({
 	total_outstanding: 0,
@@ -1150,12 +978,24 @@ const {
 	dynamicNumpadSize,
 } = useResponsivePayment()
 
+// Payment method tiles share the item selector tile look
+const paymentTileClass = computed(() => [
+	isSmallMobile.value ? "h-14" : "h-16",
+	"flex flex-col items-center justify-center gap-1 p-2 rounded-xl border-2 shadow-sm touch-manipulation transition-colors duration-75 select-none disabled:opacity-50 disabled:cursor-not-allowed",
+])
+
+function paymentTileStateClass(isActive) {
+	return isActive
+		? "bg-primary border-primary text-white"
+		: "bg-white border-gray-300 text-gray-800 hover:bg-gray-50 active:bg-gray-100"
+}
+
 // Calculate and sync column heights when dialog opens
 function syncColumnHeights() {
 	nextTick(() => {
 		if (rightColumnRef.value) {
 			const rightHeight = rightColumnRef.value.offsetHeight
-			// Preserve initial height to prevent shrinking when Quick Amounts is hidden
+			// Preserve initial height to prevent shrinking when the method prompt is hidden
 			rightColumnMinHeight.value = `${rightHeight}px`
 		}
 	})
@@ -1172,6 +1012,14 @@ watch(
 			setTimeout(syncColumnHeights, 100)
 		}
 	},
+)
+
+// Keypad digit layout, matches PriceKeypadDialog
+const numpadDigitKeys = ["7", "8", "9", "4", "5", "6", "1", "2", "3", "00", "0", "."].map(
+	(value, i) => ({
+		value,
+		style: { gridColumn: (i % 3) + 1, gridRow: Math.floor(i / 3) + 1 },
+	}),
 )
 
 // Handle Enter key from numpad keyboard input
@@ -1236,7 +1084,7 @@ const paymentMethodsResource = createResource({
 	auto: false,
 	onSuccess(data) {
 		paymentMethods.value = data?.message || data || []
-		// Set first method as last selected for quick amounts
+		// Preselect the first method so the numpad is ready to use
 		if (paymentMethods.value.length > 0) {
 			const defaultMethod = paymentMethods.value.find((m) => m.default)
 			lastSelectedMethod.value = defaultMethod || paymentMethods.value[0]
@@ -1898,26 +1746,6 @@ const paymentButtonText = computed(() => {
 	return __("Complete Payment")
 })
 
-// Use quick amounts composable for smart amount suggestions
-// Cash methods show rounded/ceil amounts (physical denominations),
-// non-cash methods show the exact fractional amount
-const isLastMethodCash = computed(() => {
-	return (
-		!lastSelectedMethod.value || isCashPaymentMethod(lastSelectedMethod.value)
-	)
-})
-const { quickAmounts } = useQuickAmounts(remainingAmount, isLastMethodCash)
-
-// Whether a quick amount button should be disabled in exact-amount mode
-// Non-cash methods can only pay the exact remaining — no rounding allowed
-function isQuickAmountDisabled(amount) {
-	return (
-		isExactAmountModeActive.value &&
-		!isCashPaymentMethod(lastSelectedMethod.value) &&
-		amount !== roundCurrency(remainingAmount.value)
-	)
-}
-
 // Preload payment methods and sales persons when posProfile is set.
 // Watches both posProfile AND enableSalesPersons to fix a race condition:
 // posProfile is available immediately (from shiftStore), but POS settings
@@ -1961,6 +1789,7 @@ watch(show, (newVal) => {
 	if (newVal) {
 		// Reset state when dialog opens (but NOT customerBalance - it's pre-fetched)
 		paymentEntries.value = []
+		paymentLog.value = []
 		customAmount.value = ""
 		numpadClear()
 		mobileCustomAmount.value = ""
@@ -2086,6 +1915,33 @@ function _upsertPaymentEntry(method, amt) {
 			is_wallet_payment: isWalletPaymentMethod(method.mode_of_payment),
 		})
 	}
+	_logPayment(method.mode_of_payment, amt, false)
+}
+
+function _logPayment(modeOfPayment, amt, isCustomerCredit) {
+	paymentLog.value.push({
+		id: ++paymentLogId,
+		mode_of_payment: modeOfPayment,
+		amount: roundCurrency(amt),
+		is_customer_credit: isCustomerCredit,
+	})
+}
+
+// Remove a single logged payment and subtract it from its consolidated entry
+function removeLoggedPayment(index) {
+	const [payment] = paymentLog.value.splice(index, 1)
+	if (!payment) return
+	const entryIndex = paymentEntries.value.findIndex(
+		(e) =>
+			e.mode_of_payment === payment.mode_of_payment &&
+			!!e.is_customer_credit === payment.is_customer_credit,
+	)
+	if (entryIndex === -1) return
+	const entry = paymentEntries.value[entryIndex]
+	entry.amount = roundCurrency((entry.amount || 0) - payment.amount)
+	if (entry.amount <= 0) {
+		paymentEntries.value.splice(entryIndex, 1)
+	}
 }
 
 // Quick add payment (long press action)
@@ -2185,39 +2041,8 @@ function onPaymentMethodCancel() {
 	handlePointerCancel()
 }
 
-// Overpayment confirmation via nested Radix Dialog (no Teleport / pointer-events hacks)
-const overpayConfirmVisible = ref(false)
-const overpayConfirmTitle = ref("")
-const overpayConfirmMessage = ref("")
-let overpayConfirmResolve = null
-
-function showOverpayConfirm({ title, message }) {
-	return new Promise((resolve) => {
-		overpayConfirmTitle.value = title
-		overpayConfirmMessage.value = message
-		overpayConfirmResolve = resolve
-		overpayConfirmVisible.value = true
-	})
-}
-
-function resolveOverpayConfirm(result) {
-	const resolve = overpayConfirmResolve
-	overpayConfirmResolve = null
-	overpayConfirmVisible.value = false
-	resolve?.(result)
-}
-
-// Handle Radix closing the confirm dialog (escape key / outside click)
-watch(overpayConfirmVisible, (visible) => {
-	if (!visible && overpayConfirmResolve) {
-		const resolve = overpayConfirmResolve
-		overpayConfirmResolve = null
-		resolve(false)
-	}
-})
-
 // Add custom amount for a method
-async function addCustomPayment(method, amount) {
+function addCustomPayment(method, amount) {
 	log.debug("[PaymentDialog] Add custom payment:", {
 		method: method.mode_of_payment,
 		amount: amount,
@@ -2287,22 +2112,6 @@ async function addCustomPayment(method, amount) {
 		}
 	}
 
-	// Block the action when adding this payment would cause a large overpayment.
-	// This catches accidental double-adds (e.g., quick amount tap then numpad add)
-	// that would result in giving back excessive change.
-	if (allowsOverpayment.value && isCashPaymentMethod(method)) {
-		const grandTotal = roundCurrency(props.grandTotal)
-		const newTotal = roundCurrency(totalPaid.value + amt)
-		const overpay = newTotal - grandTotal
-		if (grandTotal > 0 && overpay > 0 && overpay > grandTotal) {
-			const confirmed = await showOverpayConfirm({
-				title: __("Large Overpayment"),
-				message: __("Change due would be {0}. Continue?", [formatCurrency(overpay)]),
-			})
-			if (!confirmed) return
-		}
-	}
-
 	_upsertPaymentEntry(method, amt)
 
 	log.debug("[PaymentDialog] Payment added, new entries:", paymentEntries.value)
@@ -2343,6 +2152,7 @@ function applyCustomerCredit() {
 			credit_to_redeem: 0, // Will be calculated on backend
 		})),
 	})
+	_logPayment("Customer Credit", creditToApply, true)
 
 	log.debug(
 		"[PaymentDialog] Existing credit applied, new entries:",
@@ -2379,6 +2189,7 @@ function addCreditAccountPayment() {
 
 function clearAll() {
 	paymentEntries.value = []
+	paymentLog.value = []
 	customAmount.value = ""
 }
 

@@ -29,7 +29,7 @@
 						<span class="text-lg font-medium text-gray-500 dark:text-gray-400 me-2">{{ currencySymbol }}</span>
 						<span
 							:class="[
-								'text-4xl font-bold',
+								'text-[40px] leading-none font-bold',
 								buffer ? 'text-gray-900 dark:text-gray-100' : 'text-gray-400 dark:text-gray-500',
 							]"
 						>{{ displayValue }}</span>
