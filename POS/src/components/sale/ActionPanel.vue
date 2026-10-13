@@ -31,6 +31,15 @@
 		</button>
 		<button
 			type="button"
+			class="col-span-2 h-20 flex items-center justify-center p-2 rounded-xl bg-primary hover:bg-primary-hover active:bg-primary-active shadow-md text-white touch-manipulation transition-colors duration-75 select-none"
+			@click="emit('show-return')"
+		>
+			<span class="text-sm sm:text-base font-semibold text-center leading-tight">
+				{{ __("Return") }}
+			</span>
+		</button>
+		<button
+			type="button"
 			:disabled="cartEmpty"
 			class="h-20 flex items-center justify-center p-2 rounded-xl bg-primary hover:bg-primary-hover active:bg-primary-active disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed shadow-md text-white touch-manipulation transition-colors duration-75 select-none"
 			@click="emit('show-discount')"
@@ -58,5 +67,5 @@
 		discountPercentage: Number
 	})
 
-	const emit = defineEmits(["clear-cart", "save-draft", "show-drafts", "show-discount", "remove-discount"])
+	const emit = defineEmits(["clear-cart", "save-draft", "show-drafts", "show-discount", "remove-discount", "show-return"])
 </script>

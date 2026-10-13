@@ -356,6 +356,7 @@
 						@show-drafts="openDraftDialog"
 						@show-discount="uiStore.showCartDiscountDialog = true"
 						@remove-discount="cartStore.clearCartDiscount"
+						@show-return="openReturnDialog"
 					/>
 
 					<!-- Mobile Floating Cart Button -->
