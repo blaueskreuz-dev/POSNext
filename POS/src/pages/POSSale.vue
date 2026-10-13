@@ -350,9 +350,12 @@
 						v-if="uiStore.isDesktop"
 						class="col-start-2 row-start-1 row-span-2 min-w-0"
 						:cart-empty="cartStore.isEmpty"
+						:discount-percentage="cartStore.cartDiscountPercentage"
 						@clear-cart="handleClearCart"
 						@save-draft="handleSaveDraft"
 						@show-drafts="openDraftDialog"
+						@show-discount="uiStore.showCartDiscountDialog = true"
+						@remove-discount="cartStore.clearCartDiscount"
 					/>
 
 					<!-- Mobile Floating Cart Button -->
@@ -497,20 +500,11 @@
 				@return-created="handleReturnCreated"
 			/>
 
-			<!-- Coupon Dialog -->
-			<CouponDialog
-				v-model="uiStore.showCouponDialog"
-				:subtotal="cartStore.subtotal"
-				:tax-amount="cartStore.totalTax"
-				:grand-total="cartStore.grandTotal"
-				:items="cartStore.invoiceItems"
-				:pos-profile="shiftStore.profileName"
-				:customer="cartStore.customer?.name || cartStore.customer"
-				:company="shiftStore.profileCompany"
-				:currency="shiftStore.profileCurrency"
-				:applied-coupon="cartStore.appliedCoupon"
-				@discount-applied="handleDiscountApplied"
-				@discount-removed="handleDiscountRemoved"
+			<!-- Cart Discount Dialog -->
+			<CartDiscountDialog
+				v-model="uiStore.showCartDiscountDialog"
+				:current-percentage="cartStore.cartDiscountPercentage"
+				@apply="cartStore.setCartDiscountPercentage"
 			/>
 
 			<!-- Offers Dialog -->
@@ -967,7 +961,7 @@ import BatchSerialDialog from "@/components/sale/BatchSerialDialog.vue";
 import ActionPanel from "@/components/sale/ActionPanel.vue";
 import PriceKeypadDialog from "@/components/sale/PriceKeypadDialog.vue";
 import { generateUUID } from "@/utils/offline/uuid";
-import CouponDialog from "@/components/sale/CouponDialog.vue";
+import CartDiscountDialog from "@/components/sale/CartDiscountDialog.vue";
 import CreateCustomerDialog from "@/components/sale/CreateCustomerDialog.vue";
 import CustomerDialog from "@/components/sale/CustomerDialog.vue";
 import DraftInvoicesDialog from "@/components/sale/DraftInvoicesDialog.vue";
@@ -2325,15 +2319,6 @@ async function handleLoadDraft(draft) {
 function handleReturnCreated(returnInvoice) {
 	// Success message is already shown by ReturnInvoiceDialog
 	log.debug("Return invoice created:", returnInvoice.name)
-}
-
-function handleDiscountApplied(discount) {
-	cartStore.applyDiscountToCart(discount);
-	uiStore.showCouponDialog = false;
-}
-
-function handleDiscountRemoved() {
-	cartStore.removeDiscountFromCart();
 }
 
 async function handleApplyOffer(offer) {

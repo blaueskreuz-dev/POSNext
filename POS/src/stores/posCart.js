@@ -121,6 +121,7 @@ export const usePOSCartStore = defineStore("posCart", () => {
 	const pendingItemQty = ref(1)
 	const appliedOffers = ref([])
 	const appliedCoupon = ref(null)
+	const cartDiscountPercentage = ref(0)
 	const selectionMode = ref("uom") // 'uom' or 'variant'
 	const currentDraftId = ref(null)
 	const targetDoctype = ref("Sales Invoice")
@@ -225,6 +226,7 @@ export const usePOSCartStore = defineStore("posCart", () => {
 		customer.value = null
 		appliedOffers.value = []
 		appliedCoupon.value = null
+		cartDiscountPercentage.value = 0
 		currentDraftId.value = null
 		targetDoctype.value = "Sales Invoice"
 
@@ -306,6 +308,34 @@ export const usePOSCartStore = defineStore("posCart", () => {
 		appliedCoupon.value = null
 		showSuccess(__("Discount has been removed from cart"))
 	}
+
+	function setCartDiscountPercentage(percentage) {
+		cartDiscountPercentage.value = percentage
+		applyDiscount({ percentage })
+	}
+
+	function clearCartDiscount() {
+		cartDiscountPercentage.value = 0
+		removeDiscount()
+	}
+
+	// We want to keep the cart discount when adding new items
+	// Without this applying 20% on a 50.- order results in 10.- and stays that way
+	// meaning adding new items won't get the discount
+	//
+	// IMO this option is safer than calling the "recalculate" on all methods adding or removing
+	// items, with future development and also many options to change a carts total items/price
+	watch(
+		() => [subtotal.value, invoiceItems.value.length],
+		([, itemCount]) => {
+			if (!cartDiscountPercentage.value) return
+			if (itemCount === 0) {
+				clearCartDiscount()
+			} else {
+				applyDiscount({ percentage: cartDiscountPercentage.value })
+			}
+		},
+	)
 
 	function buildOfferEvaluationPayload(currentProfile) {
 		// Use toRaw() to ensure we get current, non-reactive values (prevents stale cached quantities)
@@ -1701,6 +1731,7 @@ export const usePOSCartStore = defineStore("posCart", () => {
 		pendingItemQty,
 		appliedOffers,
 		appliedCoupon,
+		cartDiscountPercentage,
 		selectionMode,
 		currentDraftId,
 		offerProcessingState, // Offer processing state for UI feedback
@@ -1726,6 +1757,8 @@ export const usePOSCartStore = defineStore("posCart", () => {
 		submitInvoice,
 		applyDiscountToCart,
 		removeDiscountFromCart,
+		setCartDiscountPercentage,
+		clearCartDiscount,
 		applyOffer,
 		removeOffer,
 		reapplyOffer,
