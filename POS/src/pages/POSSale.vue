@@ -357,6 +357,7 @@
 						@show-discount="uiStore.showCartDiscountDialog = true"
 						@remove-discount="cartStore.clearCartDiscount"
 						@show-return="openReturnDialog"
+						@checkout="handleProceedToPayment"
 					/>
 
 					<!-- Mobile Floating Cart Button -->

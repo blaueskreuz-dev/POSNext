@@ -343,38 +343,6 @@
 					</span>
 				</div>
 			</div>
-
-			<!-- Action Buttons -->
-			<div class="flex gap-1.5">
-				<!-- Checkout Button -->
-				<button
-					type="button"
-					@click="handleProceedToPayment"
-					:disabled="items.length === 0"
-					:class="[
-						'flex-1 py-2.5 px-3 rounded-lg font-bold text-xs text-white transition-all flex items-center justify-center touch-manipulation',
-						items.length === 0
-							? 'bg-gray-300 cursor-not-allowed'
-							: 'bg-primary hover:bg-primary-hover active:bg-primary-active shadow-lg hover:shadow-xl active:scale-[0.98]',
-					]"
-					:aria-label="__('Proceed to payment')"
-				>
-					<svg
-						class="w-4 h-4 me-1.5"
-						fill="none"
-						stroke="currentColor"
-						viewBox="0 0 24 24"
-						stroke-width="2"
-					>
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
-						/>
-					</svg>
-					<span>{{ __("Checkout") }}</span>
-				</button>
-			</div>
 		</div>
 
 		<!-- Edit Item Dialog -->
