@@ -336,7 +336,6 @@
 		<EditItemDialog
 			v-model="showEditDialog"
 			:item="selectedItem"
-			:warehouses="warehouses"
 			:currency="currency"
 			@update-item="handleUpdateItem"
 		/>
@@ -395,7 +394,6 @@ function handleProceedToPayment() {
  * @prop {String} posProfile - Current POS Profile name
  * @prop {String} currency - Currency code for formatting (e.g., "USD", "EUR")
  * @prop {Array} appliedOffers - List of currently applied promotional offers
- * @prop {Array} warehouses - Available warehouses for item selection
  */
 const props = defineProps({
 	items: {
@@ -425,10 +423,6 @@ const props = defineProps({
 		default: DEFAULT_CURRENCY,
 	},
 	appliedOffers: {
-		type: Array,
-		default: () => [],
-	},
-	warehouses: {
 		type: Array,
 		default: () => [],
 	},

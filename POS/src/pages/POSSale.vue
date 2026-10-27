@@ -333,7 +333,6 @@
 								:pos-profile="shiftStore.profileName"
 								:currency="shiftStore.profileCurrency"
 								:applied-offers="cartStore.appliedOffers"
-								:warehouses="profileWarehouses"
 								@update-quantity="cartStore.updateItemQuantity"
 								@remove-item="cartStore.removeItem"
 								@select-customer="handleCustomerSelected"
@@ -1136,26 +1135,6 @@ watch(
 	},
 	{ immediate: true }
 );
-
-// Computed for warehouses - returns all warehouses for the company
-const profileWarehouses = computed(() => {
-	if (warehousesList.value.length > 0) {
-		return warehousesList.value.map((w) => ({
-			name: w.name,
-			warehouse: w.warehouse_name || w.name,
-		}));
-	}
-	// Fallback to profile warehouse if API hasn't loaded yet
-	if (shiftStore.profileWarehouse) {
-		return [
-			{
-				name: shiftStore.profileWarehouse,
-				warehouse: shiftStore.profileWarehouse,
-			},
-		];
-	}
-	return [];
-});
 
 const canAccessShiftActions = computed(() => shiftStore.hasOpenShift);
 
