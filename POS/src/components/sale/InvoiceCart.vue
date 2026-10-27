@@ -265,82 +265,69 @@
 
 		<!-- Totals Summary -->
 		<div class="p-1.5 sm:p-2 bg-white border-t border-gray-200">
-			<!-- Summary Details -->
-			<div v-if="items.length > 0" class="mb-1.5">
-				<div class="flex items-center justify-between text-xs text-gray-600 mb-0.5">
-					<span class="font-medium">{{ __("Total Quantity") }}</span>
-					<span class="font-bold text-gray-900 text-center min-w-[60px]">{{
-						formatQuantity(totalQuantity)
-					}}</span>
-				</div>
-				<div class="flex items-center justify-between text-xs text-gray-600">
-					<span class="font-medium">{{ __("Subtotal") }}</span>
-					<span class="font-bold text-gray-900 text-center min-w-[60px]">{{
-						formatCurrency(displaySubtotal)
-					}}</span>
-				</div>
-			</div>
-
-			<!-- Summary Details (continued) -->
-			<div v-if="items.length > 0" class="mb-1.5">
-				<!-- Discount Display - Highlighted -->
-				<div
-					v-if="discountAmount > 0"
-					class="flex items-center justify-between mb-0.5 bg-red-50 rounded px-1.5 py-1 -mx-0.5"
-				>
-					<div class="flex items-center gap-1">
-						<svg
-							class="w-3.5 h-3.5 text-red-600"
-							fill="currentColor"
-							viewBox="0 0 20 20"
-						>
-							<path
-								fill-rule="evenodd"
-								d="M10 18a8 8 0 100-16 8 8 0 000 16zM7 9a1 1 0 000 2h6a1 1 0 100-2H7z"
-								clip-rule="evenodd"
-							/>
-						</svg>
-						<span class="text-xs font-bold text-red-700">{{ __("Discount") }}</span>
+			<div class="lg:ms-auto lg:max-w-md">
+				<!-- Summary Details -->
+				<div v-if="items.length > 0" class="mb-1.5">
+					<div class="flex items-center justify-between px-2.5 text-base text-gray-600 mb-0.5">
+						<span class="font-medium">{{ __("Total Quantity") }}</span>
+						<span class="font-bold text-gray-900 text-end min-w-[60px]">{{
+							formatQuantity(totalQuantity)
+						}}</span>
 					</div>
-					<span class="text-sm font-extrabold text-red-600 text-center min-w-[60px]">{{
-						formatCurrency(discountAmount)
-					}}</span>
-				</div>
-
-				<div class="flex items-center justify-between text-xs text-gray-600">
-					<div class="flex items-center gap-1">
-						<svg
-							class="w-3.5 h-3.5 text-gray-500"
-							fill="none"
-							stroke="currentColor"
-							viewBox="0 0 24 24"
-						>
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
-							/>
-						</svg>
-						<span class="font-medium">{{ __("Tax") }}</span>
+					<div class="flex items-center justify-between px-2.5 text-base text-gray-600">
+						<span class="font-medium">{{ __("Subtotal") }}</span>
+						<span class="font-bold text-gray-900 text-end min-w-[60px]">{{
+							formatCurrency(displaySubtotal)
+						}}</span>
 					</div>
-					<span class="font-bold text-gray-900 text-center min-w-[60px]">{{
-						formatCurrency(taxAmount)
-					}}</span>
 				</div>
-			</div>
 
-			<!-- Grand Total -->
-			<div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-2.5 mb-1.5">
-				<div class="flex items-center justify-between">
-					<span class="text-sm font-extrabold text-gray-900">{{
-						__("Grand Total")
-					}}</span>
-					<span
-						class="text-lg sm:text-xl font-extrabold text-primary text-center min-w-[60px]"
+				<!-- Summary Details (continued) -->
+				<div v-if="items.length > 0" class="mb-1.5">
+					<!-- Discount Display - Highlighted -->
+					<div
+						v-if="discountAmount > 0"
+						class="flex items-center justify-between mb-0.5 bg-red-50 rounded px-2.5 py-1 text-base"
 					>
-						{{ formatCurrency(displayGrandTotal) }}
-					</span>
+						<div class="flex items-center gap-1">
+							<svg
+								class="w-4 h-4 text-red-600"
+								fill="currentColor"
+								viewBox="0 0 20 20"
+							>
+								<path
+									fill-rule="evenodd"
+									d="M10 18a8 8 0 100-16 8 8 0 000 16zM7 9a1 1 0 000 2h6a1 1 0 100-2H7z"
+									clip-rule="evenodd"
+								/>
+							</svg>
+							<span class="font-bold text-red-700">{{ __("Discount") }}</span>
+						</div>
+						<span class="font-extrabold text-red-600 text-end min-w-[60px]">{{
+							formatCurrency(discountAmount)
+						}}</span>
+					</div>
+
+					<div class="flex items-center justify-between px-2.5 text-base text-gray-600">
+						<span class="font-medium">{{ __("Tax") }}</span>
+						<span class="font-bold text-gray-900 text-end min-w-[60px]">{{
+							formatCurrency(taxAmount)
+						}}</span>
+					</div>
+				</div>
+
+				<!-- Grand Total -->
+				<div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-2.5 mb-1.5">
+					<div class="flex items-center justify-between">
+						<span class="text-lg font-extrabold text-gray-900">{{
+							__("Grand Total")
+						}}</span>
+						<span
+							class="text-lg font-extrabold text-primary text-end min-w-[60px]"
+						>
+							{{ formatCurrency(displayGrandTotal) }}
+						</span>
+					</div>
 				</div>
 			</div>
 		</div>
