@@ -217,7 +217,7 @@
 					:class="[
 						'flex-1 overflow-hidden relative',
 						uiStore.isDesktop
-							? 'grid grid-cols-[4fr_1fr] grid-rows-[minmax(0,1fr)_auto]'
+							? 'grid grid-cols-[5fr_2fr] grid-rows-[minmax(0,1fr)_auto]'
 							: 'flex flex-col',
 					]"
 				>
