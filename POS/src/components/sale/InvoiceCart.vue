@@ -6,9 +6,9 @@
   ============================================================================
   This component displays the shopping cart in the POS interface, including:
   - Cart items list with quantity controls, UOM selection, and pricing
-  - Order totals (subtotal, discount, tax, grand total)
-  - Checkout and Hold order actions
   - Quick action buttons when cart is empty
+
+  Order totals and checkout live in ActionPanel.vue.
 
   ============================================================================
   COMPONENT STRUCTURE
@@ -24,16 +24,6 @@
      - UOM (Unit of Measure) dropdown selector
      - Serial item support with edit dialog
      - Empty cart state with quick action buttons
-
-  2. TOTALS SECTION
-     - Total Quantity
-     - Subtotal
-     - Discount (highlighted when applied)
-     - Tax
-     - Grand Total (emphasized)
-
-  3. ACTION BUTTONS
-     - Checkout - Proceed to payment
 
   ============================================================================
   FEATURES
@@ -263,75 +253,6 @@
 			</div>
 		</div>
 
-		<!-- Totals Summary -->
-		<div class="p-1.5 sm:p-2 bg-white border-t border-gray-200">
-			<div class="lg:ms-auto lg:max-w-md">
-				<!-- Summary Details -->
-				<div v-if="items.length > 0" class="mb-1.5">
-					<div class="flex items-center justify-between px-2.5 text-base text-gray-600 mb-0.5">
-						<span class="font-medium">{{ __("Total Quantity") }}</span>
-						<span class="font-bold text-gray-900 text-end min-w-[60px]">{{
-							formatQuantity(totalQuantity)
-						}}</span>
-					</div>
-					<div class="flex items-center justify-between px-2.5 text-base text-gray-600">
-						<span class="font-medium">{{ __("Subtotal") }}</span>
-						<span class="font-bold text-gray-900 text-end min-w-[60px]">{{
-							formatCurrency(displaySubtotal)
-						}}</span>
-					</div>
-				</div>
-
-				<!-- Summary Details (continued) -->
-				<div v-if="items.length > 0" class="mb-1.5">
-					<!-- Discount Display - Highlighted -->
-					<div
-						v-if="discountAmount > 0"
-						class="flex items-center justify-between mb-0.5 bg-red-50 rounded px-2.5 py-1 text-base"
-					>
-						<div class="flex items-center gap-1">
-							<svg
-								class="w-4 h-4 text-red-600"
-								fill="currentColor"
-								viewBox="0 0 20 20"
-							>
-								<path
-									fill-rule="evenodd"
-									d="M10 18a8 8 0 100-16 8 8 0 000 16zM7 9a1 1 0 000 2h6a1 1 0 100-2H7z"
-									clip-rule="evenodd"
-								/>
-							</svg>
-							<span class="font-bold text-red-700">{{ __("Discount") }}</span>
-						</div>
-						<span class="font-extrabold text-red-600 text-end min-w-[60px]">{{
-							formatCurrency(discountAmount)
-						}}</span>
-					</div>
-
-					<div class="flex items-center justify-between px-2.5 text-base text-gray-600">
-						<span class="font-medium">{{ __("Tax") }}</span>
-						<span class="font-bold text-gray-900 text-end min-w-[60px]">{{
-							formatCurrency(taxAmount)
-						}}</span>
-					</div>
-				</div>
-
-				<!-- Grand Total -->
-				<div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-2.5 mb-1.5">
-					<div class="flex items-center justify-between">
-						<span class="text-lg font-extrabold text-gray-900">{{
-							__("Grand Total")
-						}}</span>
-						<span
-							class="text-lg font-extrabold text-primary text-end min-w-[60px]"
-						>
-							{{ formatCurrency(displayGrandTotal) }}
-						</span>
-					</div>
-				</div>
-			</div>
-		</div>
-
 		<!-- Edit Item Dialog -->
 		<EditItemDialog
 			v-model="showEditDialog"
@@ -387,13 +308,8 @@ function handleProceedToPayment() {
  * ============================================================================
  * @prop {Array} items - Cart items array with item details (item_code, quantity, rate, etc.)
  * @prop {Object} customer - Selected customer object (name, customer_name, mobile_no)
- * @prop {Number} subtotal - Cart subtotal before tax and discounts
- * @prop {Number} taxAmount - Total tax amount
- * @prop {Number} discountAmount - Total discount amount applied
- * @prop {Number} grandTotal - Final total (subtotal - discount + tax)
  * @prop {String} posProfile - Current POS Profile name
  * @prop {String} currency - Currency code for formatting (e.g., "USD", "EUR")
- * @prop {Array} appliedOffers - List of currently applied promotional offers
  */
 const props = defineProps({
 	items: {
@@ -401,30 +317,10 @@ const props = defineProps({
 		default: () => [],
 	},
 	customer: Object,
-	subtotal: {
-		type: Number,
-		default: 0,
-	},
-	taxAmount: {
-		type: Number,
-		default: 0,
-	},
-	discountAmount: {
-		type: Number,
-		default: 0,
-	},
-	grandTotal: {
-		type: Number,
-		default: 0,
-	},
 	posProfile: String,
 	currency: {
 		type: String,
 		default: DEFAULT_CURRENCY,
-	},
-	appliedOffers: {
-		type: Array,
-		default: () => [],
 	},
 });
 
@@ -551,12 +447,6 @@ watch(
  * ============================================================================
  */
 
-/**
- * Count of currently applied promotional offers.
- * Used for the badge on the "Offers" button.
- * @returns {Number} Count of applied offers
- */
-const appliedOfferCount = computed(() => (props.appliedOffers || []).length);
 
 // Shared column layout for the cart header and item rows:
 // Item | Qty (−/input/+) | Rate | Discount | Total | remove button
@@ -628,57 +518,6 @@ const customerResults = computed(() => {
  */
 watch(customerResults, () => {
 	selectedIndex.value = -1;
-});
-
-/**
- * Total quantity of all items in cart (including free items).
- * Sums quantity + free_qty for each cart item.
- * @returns {Number} Total item quantity
- */
-const totalQuantity = computed(() => {
-	return props.items.reduce((sum, item) => {
-		const qty = item.quantity || 0;
-		// For dedicated free item rows, quantity IS the free qty — don't double-count
-		const freeQty = item.is_free_item ? 0 : (item.free_qty || 0);
-		return sum + qty + freeQty;
-	}, 0);
-});
-
-/**
- * Display subtotal adjusted for tax-inclusive mode.
- *
- * When tax is inclusive, the raw subtotal from the store includes tax.
- * For clear cashier display, we show:
- * - Subtotal: Net amount (before tax) = gross - tax
- * - Tax: The extracted tax amount
- * - Grand Total: gross amount = Subtotal + Tax
- *
- * When tax is exclusive, subtotal is already net (before tax).
- *
- * @returns {Number} Subtotal amount to display (net amount before tax)
- */
-const displaySubtotal = computed(() => {
-	if (cartStore.taxInclusive) {
-		// Tax inclusive: subtotal from store is gross (includes tax)
-		// Display the net amount (before tax) for clarity
-		return props.subtotal - props.taxAmount;
-	}
-	// Tax exclusive: subtotal is already net (before tax)
-	return props.subtotal;
-});
-
-/**
- * Display grand total that visually equals Subtotal + Tax - Discount.
- *
- * This ensures the math is intuitive for cashiers:
- * Grand Total = displaySubtotal + Tax - Discount
- *
- * @returns {Number} Grand total amount to display
- */
-const displayGrandTotal = computed(() => {
-	// Always: displaySubtotal + tax - discount
-	// This makes the display consistent and intuitive
-	return displaySubtotal.value + props.taxAmount - props.discountAmount;
 });
 
 /**
