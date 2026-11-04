@@ -4,7 +4,7 @@
 			<button
 				type="button"
 				:disabled="cartEmpty"
-				class="col-span-2 h-20 flex items-center justify-center p-2 rounded-xl bg-primary hover:bg-primary-hover active:bg-primary-active disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed shadow-md text-white touch-manipulation transition-colors duration-75 select-none"
+				:class="buttonClass"
 				@click="emit('clear-cart')"
 			>
 				<span class="text-sm sm:text-base font-semibold text-center leading-tight">
@@ -13,36 +13,16 @@
 			</button>
 			<button
 				type="button"
-				:disabled="cartEmpty"
-				class="h-20 flex items-center justify-center p-2 rounded-xl bg-primary hover:bg-primary-hover active:bg-primary-active disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed shadow-md text-white touch-manipulation transition-colors duration-75 select-none"
-				@click="emit('save-draft')"
+				:class="buttonClass"
 			>
 				<span class="text-sm sm:text-base font-semibold text-center leading-tight">
-					{{ __("Hold", null, "order") }}
-				</span>
-			</button>
-			<button
-				type="button"
-				class="relative h-20 flex items-center justify-center p-2 rounded-xl bg-primary hover:bg-primary-hover active:bg-primary-active shadow-md text-white touch-manipulation transition-colors duration-75 select-none"
-				@click="emit('show-drafts')"
-			>
-				<span class="text-sm sm:text-base font-semibold text-center leading-tight">
-					{{ __("Drafts") }}
-				</span>
-			</button>
-			<button
-				type="button"
-				class="col-span-2 h-20 flex items-center justify-center p-2 rounded-xl bg-primary hover:bg-primary-hover active:bg-primary-active shadow-md text-white touch-manipulation transition-colors duration-75 select-none"
-				@click="emit('show-return')"
-			>
-				<span class="text-sm sm:text-base font-semibold text-center leading-tight">
-					{{ __("Return") }}
+					{{ __("Lock") }}
 				</span>
 			</button>
 			<button
 				type="button"
 				:disabled="cartEmpty"
-				class="h-20 flex items-center justify-center p-2 rounded-xl bg-primary hover:bg-primary-hover active:bg-primary-active disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed shadow-md text-white touch-manipulation transition-colors duration-75 select-none"
+				:class="buttonClass"
 				@click="emit('show-discount')"
 			>
 				<span class="text-sm sm:text-base font-semibold text-center leading-tight">
@@ -52,11 +32,74 @@
 			<button
 				type="button"
 				:disabled="!discountPercentage"
-				class="h-20 flex items-center justify-center p-2 rounded-xl bg-primary hover:bg-primary-hover active:bg-primary-active disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed shadow-md text-white touch-manipulation transition-colors duration-75 select-none"
+				:class="buttonClass"
 				@click="emit('remove-discount')"
 			>
 				<span class="text-sm sm:text-base font-semibold text-center leading-tight">
 					{{ __("Remove Discount") }}
+				</span>
+			</button>
+			<button
+				type="button"
+				:class="['col-span-2', buttonClass]"
+			>
+				<span class="text-sm sm:text-base font-semibold text-center leading-tight">
+					{{ __("Open cash register") }}
+				</span>
+			</button>
+
+			<div class="col-span-2 h-20" aria-hidden="true"></div>
+
+			<button
+				type="button"
+				:class="buttonClass"
+			>
+				<span class="text-sm sm:text-base font-semibold text-center leading-tight">
+					{{ __("Reprint Invoice") }}
+				</span>
+			</button>
+			<button
+				type="button"
+				:class="buttonClass"
+			>
+				<span class="text-sm sm:text-base font-semibold text-center leading-tight">
+					{{ __("Invoice History") }}
+				</span>
+			</button>
+			<button
+				type="button"
+				:disabled="cartEmpty"
+				:class="buttonClass"
+				@click="emit('save-draft')"
+			>
+				<span class="text-sm sm:text-base font-semibold text-center leading-tight">
+					{{ __("Hold", null, "order") }}
+				</span>
+			</button>
+			<button
+				type="button"
+				:class="buttonClass"
+				@click="emit('show-drafts')"
+			>
+				<span class="text-sm sm:text-base font-semibold text-center leading-tight">
+					{{ __("Drafts") }}
+				</span>
+			</button>
+			<button
+				type="button"
+				:class="buttonClass"
+				@click="emit('show-return')"
+			>
+				<span class="text-sm sm:text-base font-semibold text-center leading-tight">
+					{{ __("Return") }}
+				</span>
+			</button>
+			<button
+				type="button"
+				:class="buttonClass"
+			>
+				<span class="text-sm sm:text-base font-semibold text-center leading-tight">
+					{{ __("Cancel Invoice") }}
 				</span>
 			</button>
 		</div>
@@ -115,6 +158,9 @@
 		taxInclusive: Boolean,
 		currency: { type: String, default: DEFAULT_CURRENCY }
 	})
+
+	const buttonClass =
+		"h-20 flex items-center justify-center p-2 rounded-xl bg-primary hover:bg-primary-hover active:bg-primary-active disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed shadow-md text-white touch-manipulation transition-colors duration-75 select-none"
 
 	const { formatQuantity } = useFormatters()
 
