@@ -14,6 +14,7 @@
 			<button
 				type="button"
 				:class="buttonClass"
+				@click="lockSession()"
 			>
 				<span class="text-sm sm:text-base font-semibold text-center leading-tight">
 					{{ __("Lock") }}
@@ -146,7 +147,10 @@
 <script setup>
 	import { computed } from "vue"
 	import { useFormatters } from "@/composables/useFormatters"
+	import { useSessionLock } from "@/composables/useSessionLock"
 	import { DEFAULT_CURRENCY, formatCurrency as formatCurrencyUtil } from "@/utils/currency"
+
+	const { lock: lockSession } = useSessionLock()
 
 	const props = defineProps({
 		cartEmpty: Boolean,
