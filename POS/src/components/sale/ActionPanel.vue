@@ -127,17 +127,10 @@
 			<button
 				type="button"
 				:disabled="cartEmpty"
-				class="w-full h-24 flex items-center justify-center gap-2 p-2 rounded-xl bg-primary hover:bg-primary-hover active:bg-primary-active disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed shadow-lg text-white touch-manipulation transition-colors duration-75 select-none"
+				class="w-full h-24 flex items-center justify-center p-2 rounded-xl bg-secondary hover:bg-secondary-hover active:bg-secondary-active disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed shadow-lg text-white touch-manipulation transition-colors duration-75 select-none"
 				:aria-label="__('Proceed to payment')"
 				@click="emit('checkout')"
 			>
-				<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-					<path
-						stroke-linecap="round"
-						stroke-linejoin="round"
-						d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
-					/>
-				</svg>
 				<span class="text-lg sm:text-xl font-bold">{{ __("Checkout") }}</span>
 			</button>
 		</div>

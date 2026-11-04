@@ -16,7 +16,9 @@ export default {
 					active: "#004075",
 				},
 				secondary: {
-					DEFAULT: "#f6ac6f",
+					DEFAULT: "#8b9c2b",
+					hover: "#768525",
+					active: "#616d1e",
 				},
 			},
 		},
