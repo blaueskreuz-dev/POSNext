@@ -62,65 +62,28 @@
 		</div>
 		<div class="mt-auto shrink-0">
 			<!-- Totals Summary -->
-			<div v-if="!cartEmpty" class="mb-1.5">
-				<div class="flex items-center justify-between px-2.5 text-base text-gray-600 mb-0.5">
-					<span class="font-medium">{{ __("Total Quantity") }}</span>
-					<span class="font-bold text-gray-900 text-end min-w-[60px]">{{
-						formatQuantity(totalQuantity)
-					}}</span>
-				</div>
-				<div class="flex items-center justify-between px-2.5 text-base text-gray-600">
-					<span class="font-medium">{{ __("Subtotal") }}</span>
-					<span class="font-bold text-gray-900 text-end min-w-[60px]">{{
-						formatCurrency(displaySubtotal)
-					}}</span>
-				</div>
-			</div>
-
-			<div v-if="!cartEmpty" class="mb-1.5">
-				<!-- Discount Display - Highlighted -->
-				<div
-					v-if="discountAmount > 0"
-					class="flex items-center justify-between mb-0.5 bg-red-50 rounded px-2.5 py-1 text-base"
-				>
-					<div class="flex items-center gap-1">
-						<svg
-							class="w-4 h-4 text-red-600"
-							fill="currentColor"
-							viewBox="0 0 20 20"
-						>
-							<path
-								fill-rule="evenodd"
-								d="M10 18a8 8 0 100-16 8 8 0 000 16zM7 9a1 1 0 000 2h6a1 1 0 100-2H7z"
-								clip-rule="evenodd"
-							/>
-						</svg>
-						<span class="font-bold text-red-700">{{ __("Discount") }}</span>
+			<div class="flex flex-col gap-1 px-2.5 mb-2 text-xl text-gray-900">
+				<template v-if="!cartEmpty">
+					<div class="flex items-center justify-between">
+						<span>{{ __("Total Quantity") }}</span>
+						<span class="text-end">{{ formatQuantity(totalQuantity) }}</span>
 					</div>
-					<span class="font-extrabold text-red-600 text-end min-w-[60px]">{{
-						formatCurrency(discountAmount)
-					}}</span>
-				</div>
-
-				<div class="flex items-center justify-between px-2.5 text-base text-gray-600">
-					<span class="font-medium">{{ __("Tax") }}</span>
-					<span class="font-bold text-gray-900 text-end min-w-[60px]">{{
-						formatCurrency(taxAmount)
-					}}</span>
-				</div>
-			</div>
-
-			<!-- Grand Total -->
-			<div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-2.5 mb-1.5">
-				<div class="flex items-center justify-between">
-					<span class="text-lg font-extrabold text-gray-900">{{
-						__("Grand Total")
-					}}</span>
-					<span
-						class="text-lg font-extrabold text-primary text-end min-w-[60px]"
-					>
-						{{ formatCurrency(displayGrandTotal) }}
-					</span>
+					<div class="flex items-center justify-between">
+						<span>{{ __("Subtotal") }}</span>
+						<span class="text-end">{{ formatCurrency(displaySubtotal) }}</span>
+					</div>
+					<div v-if="discountAmount > 0" class="flex items-center justify-between text-red-600">
+						<span>{{ __("Discount") }}</span>
+						<span class="text-end">{{ formatCurrency(discountAmount) }}</span>
+					</div>
+					<div class="flex items-center justify-between">
+						<span>{{ __("Tax") }}</span>
+						<span class="text-end">{{ formatCurrency(taxAmount) }}</span>
+					</div>
+				</template>
+				<div class="flex items-center justify-between font-bold">
+					<span>{{ __("Grand Total") }}</span>
+					<span class="text-end">{{ formatCurrency(displayGrandTotal) }}</span>
 				</div>
 			</div>
 
