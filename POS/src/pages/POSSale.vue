@@ -211,6 +211,9 @@
 				class="flex-1 flex overflow-hidden relative"
 				style="max-height: calc(100vh - 60px - var(--header-height, 60px))"
 			>
+				<!-- Icon-Only Management Slider - Always Visible -->
+				<ManagementSlider @menu-clicked="handleManagementMenuClick" />
+
 				<!-- Main Content Container -->
 				<div
 					ref="containerRef"
@@ -958,6 +961,7 @@ import ClearCacheOverlay from "@/components/common/ClearCacheOverlay.vue";
 import SessionLockScreen from "@/components/common/SessionLockScreen.vue";
 import LoadingSpinner from "@/components/common/LoadingSpinner.vue";
 import POSFooter from "@/components/common/POSFooter.vue";
+import ManagementSlider from "@/components/pos/ManagementSlider.vue";
 import POSHeader from "@/components/pos/POSHeader.vue";
 import BatchSerialDialog from "@/components/sale/BatchSerialDialog.vue";
 import ActionPanel from "@/components/sale/ActionPanel.vue";
@@ -2645,6 +2649,23 @@ function restoreBodyStyles() {
 }
 
 // Management and Promotion handlers
+function handleManagementMenuClick(menuItem) {
+	if (menuItem === "promotions") {
+		showPromotionManagement.value = true;
+	} else if (menuItem === "settings") {
+		showPOSSettings.value = true;
+	} else if (menuItem === "invoices") {
+		// Load invoice history data before showing
+		loadInvoiceHistoryData();
+		// Load drafts data
+		draftsStore.loadDrafts();
+		showInvoiceManagement.value = true;
+	} else if (menuItem === "products") {
+		// Open Stock Lookup dialog in search mode
+		showStockLookup.value = true;
+	}
+}
+
 // Load invoice history data
 async function loadInvoiceHistoryData() {
 	log.info("Loading invoice history data for profile:", shiftStore.profileName);
@@ -2714,7 +2735,10 @@ async function handlePrintInvoice(invoiceData) {
 	try {
 		// Silent print path — send directly to thermal printer via QZ Tray
 		if (posSettingsStore.silentPrint) {
-			const result = await printWithSilentFallback(invoiceData);
+			const result = await printWithSilentFallback({
+				pos_profile: shiftStore.profileName,
+				...invoiceData,
+			});
 			if (result.method === "browser") {
 				log.info("Used browser print fallback");
 			}
