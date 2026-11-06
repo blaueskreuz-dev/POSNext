@@ -244,11 +244,12 @@ export async function printHTML(html, printerName, options = {}) {
 		throw new Error("No printer selected. Please select a printer in POS Settings.")
 	}
 
+	// Compared to default POSNext we are definining width and create a html with that page width
+	// our printer drivers (CK710) only print on their default roll format width and
+	// output nothing when that width does not match
+	const width = options.width || 80
+
 	const config = qz.configs.create(printer, {
-		size: {
-			width: options.width || 80,
-			height: null, // auto height for receipts
-		},
 		units: "mm",
 		orientation: options.orientation || "portrait",
 		margins: { top: 0, right: 0, bottom: 0, left: 0 },
@@ -262,6 +263,7 @@ export async function printHTML(html, printerName, options = {}) {
 			format: "html",
 			flavor: "plain",
 			data: html,
+			options: { pageWidth: width },
 		},
 	]
 
@@ -271,6 +273,51 @@ export async function printHTML(html, printerName, options = {}) {
 		return true
 	} catch (err) {
 		log.error(`Print failed on "${printer}":`, err?.message || err)
+		throw err
+	}
+}
+
+// ============================================================================
+// Cash Drawer
+// ============================================================================
+
+// The Cash drawer Needs a ESC pulse on the kick out connector pin 2 (m = 0).
+// Be Aware that the max values for a Long pluse are around 510ms.
+const DRAWER_KICK_COMMAND = "\x1B\x70\x00\xFF\xFF"
+
+/**
+ * Open the cash drawer attached to the saved receipt printer via an ESC/POS pulse.
+ *
+ * @returns {Promise<boolean>} true if the pulse was sent successfully
+ */
+export async function openCashDrawer() {
+	if (!qz.websocket.isActive()) {
+		const ok = await connect()
+		if (!ok) {
+			throw new Error("QZ Tray is not available")
+		}
+	}
+
+	const printer = getSavedPrinterName()
+	if (!printer) {
+		throw new Error("No printer selected. Please select a printer in POS Settings.")
+	}
+
+	const config = qz.configs.create(printer)
+	const data = [
+		{
+			type: "raw",
+			format: "command",
+			flavor: "plain",
+			data: DRAWER_KICK_COMMAND,
+		},
+	]
+
+	try {
+		await qz.print(config, data)
+		return true
+	} catch (err) {
+		log.error(`Cash drawer pulse failed on "${printer}":`, err?.message || err)
 		throw err
 	}
 }

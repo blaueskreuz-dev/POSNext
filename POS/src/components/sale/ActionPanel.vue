@@ -43,6 +43,7 @@
 			<button
 				type="button"
 				:class="['col-span-2', buttonClass]"
+				@click="handleOpenCashDrawer"
 			>
 				<span class="text-sm sm:text-base font-semibold text-center leading-tight">
 					{{ __("Open cash register") }}
@@ -148,9 +149,20 @@
 	import { computed } from "vue"
 	import { useFormatters } from "@/composables/useFormatters"
 	import { useSessionLock } from "@/composables/useSessionLock"
+	import { useToast } from "@/composables/useToast"
 	import { DEFAULT_CURRENCY, formatCurrency as formatCurrencyUtil } from "@/utils/currency"
+	import { openCashDrawer } from "@/utils/qzTray"
 
 	const { lock: lockSession } = useSessionLock()
+	const { showError } = useToast()
+
+	async function handleOpenCashDrawer() {
+		try {
+			await openCashDrawer()
+		} catch (err) {
+			showError(err?.message || __("Failed to open cash register"))
+		}
+	}
 
 	const props = defineProps({
 		cartEmpty: Boolean,

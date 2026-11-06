@@ -140,7 +140,8 @@ export async function printWithSilentFallback(invoiceData, printFormat = null) {
 	if (!invoiceName) throw new Error("Invalid invoice data — missing name")
 
 	try {
-		await silentPrintInvoice(invoiceName, printFormat)
+		const settings = await resolvePrintSettings(invoiceData.pos_profile, printFormat)
+		await silentPrintInvoice(invoiceName, settings.printFormat)
 		return { method: "silent", success: true }
 	} catch (err) {
 		log.warn("Silent print failed, falling back to browser:", err?.message || err)
