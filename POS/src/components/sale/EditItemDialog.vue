@@ -1,249 +1,133 @@
 <template>
-	<!-- Custom Modal matching frappe-ui Dialog styling -->
-	<!-- Uses @click.self pattern to properly handle teleported SelectInput dropdowns -->
 	<Teleport to="body">
 		<Transition name="dialog">
 			<div
-				v-if="show"
-				class="fixed inset-0 bg-black/20 dark:bg-black/70 overflow-y-auto dialog-overlay outline-none z-dialog-overlay"
+				v-if="show && localItem"
+				class="fixed inset-0 bg-black/30 dark:bg-black/70 dialog-overlay flex items-center justify-center p-4"
 				@click.self="cancel"
 			>
-				<div class="flex min-h-screen flex-col items-center justify-center px-4 py-4 text-center">
-					<Transition name="dialog-content">
-						<div
-							v-if="show"
-							class="my-8 inline-block w-full max-w-md transform overflow-hidden rounded-xl bg-white text-left align-middle shadow-xl dialog-content z-dialog-content"
+				<div class="w-full max-w-sm rounded-2xl bg-white dark:bg-gray-900 shadow-2xl p-5 select-none">
+					<!-- Header: item name + close -->
+					<div class="flex items-start justify-between mb-4">
+						<h3 class="min-w-0 text-xl font-semibold text-gray-900 dark:text-gray-100 truncate">
+							{{ localItem.item_name }}
+						</h3>
+						<button
+							class="-me-2 -mt-1 p-2 rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 touch-manipulation"
+							:aria-label="__('Cancel')"
+							@click="cancel"
 						>
-							<!-- Header - matching frappe-ui Dialog style -->
-							<div class="bg-white px-4 pb-6 pt-5 sm:px-6">
-								<div class="flex">
-									<div class="w-full flex-1">
-										<div class="mb-6 flex items-center justify-between">
-											<div class="flex items-center space-x-2">
-												<h3 class="text-2xl font-semibold leading-6 text-gray-900">
-													{{ __('Edit Item Details') }}
-												</h3>
-											</div>
-											<button
-												type="button"
-												@click="cancel"
-												class="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
-											>
-												<FeatherIcon name="x" class="h-4 w-4" />
-											</button>
-										</div>
+							<FeatherIcon name="x" class="w-6 h-6" />
+						</button>
+					</div>
 
-										<!-- Body Content -->
-										<div v-if="localItem" class="flex flex-col gap-4">
-											<!-- Item Header -->
-											<div class="flex items-center gap-3 pb-4 border-b border-gray-200">
-												<!-- Item Image -->
-												<div class="w-16 h-16 bg-gray-100 rounded-lg flex-shrink-0 flex items-center justify-center overflow-hidden">
-													<img
-														v-if="localItem.image"
-														:src="localItem.image"
-														:alt="localItem.item_name"
-														class="w-full h-full object-cover"
-													/>
-													<svg
-														v-else
-														class="h-8 w-8 text-gray-400"
-														fill="none"
-														stroke="currentColor"
-														viewBox="0 0 24 24"
-													>
-														<path
-															stroke-linecap="round"
-															stroke-linejoin="round"
-															stroke-width="2"
-															d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-														/>
-													</svg>
-												</div>
-												<!-- Item Info -->
-												<div class="flex-1 min-w-0">
-													<h3 class="text-base font-semibold text-gray-900 truncate">
-														{{ localItem.item_name }}
-													</h3>
-													<p class="text-sm text-gray-500 truncate">
-														{{ formatCurrency(localItem.price_list_rate || localItem.rate) }}
-													</p>
-												</div>
-											</div>
+					<!-- Tabs -->
+					<div
+						v-if="tabs.length > 1"
+						class="grid grid-cols-2 gap-1 p-1 mb-4 rounded-xl bg-gray-100 dark:bg-gray-800"
+						role="tablist"
+					>
+						<button
+							v-for="tab in tabs"
+							:key="tab.key"
+							type="button"
+							role="tab"
+							:aria-selected="activeTab === tab.key"
+							:class="[
+								'h-11 rounded-lg text-base font-semibold transition-colors duration-75 touch-manipulation',
+								activeTab === tab.key
+									? 'bg-primary text-white shadow-sm'
+									: 'text-gray-600 dark:text-gray-300 hover:bg-gray-200 active:bg-gray-300 dark:hover:bg-gray-700 dark:active:bg-gray-600',
+							]"
+							@click="selectTab(tab.key)"
+						>
+							{{ tab.label }}
+						</button>
+					</div>
 
-											<!-- Quantity and Rate -->
-											<div class="grid grid-cols-2 gap-4">
-												<!-- Quantity Control -->
-												<div>
-													<label class="block text-sm font-medium text-gray-700 mb-2 text-start">
-                              {{ __('Quantity') }}
-                              <span v-if="localItem?.is_resolved_barcode" class="ms-1 text-xs text-amber-600">({{ __('Locked') }})</span>
-                            </label>
-													<!-- For serial items, quantity is read-only (controlled by serial list) -->
-													<div v-if="localItem?.has_serial_no && localSerials.length > 0" class="w-full h-7 border border-gray-300 rounded-lg bg-gray-50 flex items-center justify-center">
-														<span class="text-sm font-semibold text-gray-600">{{ localSerials.length }}</span>
-													</div>
-                            <!-- For resolved barcode items, quantity is read-only -->
-                            <div v-else-if="localItem?.is_resolved_barcode" class="w-full h-10 border border-amber-300 rounded-lg bg-amber-50 flex items-center justify-center">
-                              <span class="text-sm font-semibold text-amber-700">{{ localQuantity }}</span>
-                            </div>
-													<!-- For non-serial items, show quantity controls -->
-													<div v-else class="w-full h-7 border border-gray-300 rounded-lg bg-white flex items-center overflow-hidden">
-														<button
-															type="button"
-															@click="decrementQuantity"
-															class="w-7 h-7 min-w-7 bg-gray-100 hover:bg-gray-200 active:bg-gray-300 text-gray-700 font-bold text-base transition-colors flex items-center justify-center border-e border-gray-300"
-														>
-															−
-														</button>
-														<div class="flex-1 h-full flex items-center justify-center px-2">
-															<input
-																v-model.number="localQuantity"
-																type="number"
-																min="0.0001"
-																step="any"
-																inputmode="decimal"
-																class="w-full text-center border-0 text-sm font-semibold focus:outline-none focus:ring-0 bg-transparent"
-																@input="handleQuantityInput"
-																@blur="handleQuantityBlur"
-																@keydown.enter="$event.target.blur()"
-															/>
-														</div>
-														<button
-															type="button"
-															@click="incrementQuantity"
-															class="w-7 h-7 min-w-7 bg-gray-100 hover:bg-gray-200 active:bg-gray-300 text-gray-700 font-bold text-base transition-colors flex items-center justify-center border-s border-gray-300"
-														>
-															+
-														</button>
-													</div>
-												</div>
+					<div
+						v-if="activeTab"
+						:class="['grid grid-cols-4 gap-2 mb-4', activeTab !== 'discount' && 'invisible']"
+						:aria-hidden="activeTab !== 'discount'"
+					>
+						<button
+							v-for="preset in DISCOUNT_PRESETS"
+							:key="preset"
+							type="button"
+							:disabled="!isDiscountAllowed(preset)"
+							:class="[
+								'h-14 rounded-xl text-xl font-bold transition-colors duration-75 touch-manipulation disabled:opacity-40',
+								preset === discountPercent
+									? 'bg-primary text-white active:bg-primary-active'
+									: 'bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 active:bg-gray-200 dark:active:bg-gray-700',
+							]"
+							@click="applyPreset(preset)"
+						>
+							{{ preset }}%
+						</button>
+					</div>
 
-												<!-- Rate -->
-												<div>
-													<label class="block text-sm font-medium text-gray-700 mb-2 text-start">{{ __('Rate') }}</label>
-													<div class="relative h-7">
-														<span class="absolute inset-y-0 start-0 ps-3 flex items-center text-gray-500 text-sm font-medium">
-															{{ currencySymbol }}
-														</span>
-														<input
-															v-model.number="localRate"
-															type="number"
-															min="0"
-															step="0.01"
-															:readonly="!canEditRate"
-															:class="canEditRate ? 'bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent' : 'bg-gray-50 cursor-not-allowed'"
-															class="w-full h-7 border border-gray-300 rounded-lg ps-12 pe-3 text-sm font-semibold"
-															:title="rateEditDisabledReason"
-															@input="calculateTotals"
-														/>
-													</div>
-													<!-- Compact warning when rate editing disabled due to pricing rules -->
-													<p v-if="hasPricingRules && settingsStore.allowUserToEditRate" class="mt-1 text-xs text-amber-600 flex items-center gap-1">
-														<FeatherIcon name="lock" class="w-3 h-3" />
-														{{ __('Locked (offer applied)') }}
-													</p>
-												</div>
-											</div>
+					<!-- Display -->
+					<div
+						v-if="activeTab"
+						class="mb-4 rounded-xl bg-gray-100 dark:bg-gray-800 px-4 py-4 text-end tabular-nums"
+					>
+							<span
+								v-if="activeTab === 'rate'"
+								class="text-lg font-medium text-gray-500 dark:text-gray-400 me-2"
+							>{{ currencySymbol }}</span>
+							<span
+								:class="[
+									'text-[40px] leading-none font-bold',
+									buffer !== null ? 'text-gray-900 dark:text-gray-100' : 'text-gray-400 dark:text-gray-500',
+								]"
+							>{{ displayValue }}</span>
+							<span
+								v-if="activeTab === 'discount'"
+								class="text-lg font-medium text-gray-500 dark:text-gray-400 ms-2"
+							>%</span>
+					</div>
 
-											<!-- Serial Numbers Section (only for serial items) -->
-											<div v-if="localItem?.has_serial_no && localSerials.length > 0" class="border-t border-gray-200 pt-4">
-												<div class="flex items-center justify-between mb-3">
-													<label class="block text-sm font-medium text-gray-700 text-start">
-														{{ __('Serial Numbers') }}
-														<span class="ms-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-															{{ localSerials.length }}
-														</span>
-													</label>
-												</div>
-												<div class="flex flex-col gap-2 max-h-40 overflow-y-auto">
-													<div
-														v-for="(serial, index) in localSerials"
-														:key="serial"
-														class="flex items-center justify-between gap-2 p-2 bg-gray-50 rounded-lg"
-													>
-														<div class="flex items-center gap-2">
-															<span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-600 text-white text-xs font-medium">
-																{{ index + 1 }}
-															</span>
-															<span class="text-sm font-medium text-gray-900">{{ serial }}</span>
-														</div>
-														<button
-															type="button"
-															@click="removeSerial(serial)"
-															:disabled="localSerials.length <= 1"
-															class="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-															:title="localSerials.length <= 1 ? __('Cannot remove last serial') : __('Remove serial')"
-														>
-															<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-																<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-															</svg>
-														</button>
-													</div>
-												</div>
-											</div>
-
-											<!-- Item Discount Section (only if allowed by POS Profile) -->
-											<div v-if="settingsStore.allowItemDiscount" class="border-t border-gray-200 pt-4">
-												<label class="block text-sm font-medium text-gray-700 mb-3 text-start">{{ __('Item Discount') }}</label>
-												<div class="grid grid-cols-2 gap-3">
-													<!-- Discount Type -->
-													<div>
-														<label class="block text-xs text-gray-600 mb-1 text-start">{{ __('Discount Type') }}</label>
-														<SelectInput v-model="discountType" :options="discountTypeOptions" @change="handleDiscountTypeChange" />
-													</div>
-													<!-- Discount Value -->
-													<div>
-														<label class="block text-xs text-gray-600 mb-1 text-start">{{ discountType === 'percentage' ? __('Percentage') : __('Amount') }}</label>
-														<div class="relative">
-															<input
-																v-model.number="discountValue"
-																type="number"
-																min="0"
-																:max="discountType === 'percentage' ? 100 : undefined"
-																step="0.01"
-																class="w-full h-7 border border-gray-300 rounded-lg px-3 pe-8 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-																@input="calculateDiscount"
-															/>
-															<span class="absolute inset-y-0 end-0 pe-3 flex items-center text-gray-500 text-sm">
-																{{ discountType === 'percentage' ? '%' : '' }}
-															</span>
-														</div>
-													</div>
-												</div>
-											</div>
-
-											<!-- Totals -->
-											<div class="bg-gray-50 rounded-lg p-4 flex flex-col gap-2">
-												<div class="flex items-center justify-between text-sm">
-													<span class="text-gray-600">{{ __('Subtotal:') }}</span>
-													<span class="font-semibold text-gray-900">{{ formatCurrency(calculatedSubtotal) }}</span>
-												</div>
-												<div v-if="calculatedDiscount > 0" class="flex items-center justify-between text-sm text-red-600">
-													<span>{{ __('Discount:') }}</span>
-													<span class="font-semibold">-{{ formatCurrency(calculatedDiscount) }}</span>
-												</div>
-												<div class="flex items-center justify-between pt-2 border-t border-gray-200">
-													<span class="text-base font-bold text-gray-900">{{ __('Total:') }}</span>
-													<span class="text-lg font-bold text-blue-600">{{ formatCurrency(calculatedTotal) }}</span>
-												</div>
-											</div>
-										</div>
-									</div>
-								</div>
-							</div>
-
-							<!-- Actions - matching frappe-ui Dialog style -->
-							<div class="px-4 pb-7 pt-4 sm:px-6">
-								<div class="flex items-center justify-end gap-2">
-									<Button variant="subtle" @click="cancel">{{ __('Cancel') }}</Button>
-									<Button variant="solid" @click="updateItem">
-										{{ __('Update Item') }}
-									</Button>
-								</div>
-							</div>
-						</div>
-					</Transition>
+					<!-- Keypad (same as PriceKeypadDialog) -->
+					<div class="grid grid-cols-4 gap-2">
+						<template v-if="activeTab">
+							<button
+								v-for="key in digitKeys"
+								:key="key.value"
+								:style="key.style"
+								class="h-16 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-2xl font-semibold text-gray-900 dark:text-gray-100 active:bg-gray-200 dark:active:bg-gray-700 transition-colors duration-75 touch-manipulation"
+								@click="press(key.value)"
+							>
+								{{ key.value }}
+							</button>
+							<button
+								style="grid-column: 4; grid-row: 1"
+								class="h-16 rounded-xl bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 flex items-center justify-center active:bg-gray-300 dark:active:bg-gray-600 transition-colors duration-75 touch-manipulation"
+								:aria-label="__('Backspace')"
+								@click="backspace"
+							>
+								<FeatherIcon name="delete" class="w-6 h-6" />
+							</button>
+							<button
+								style="grid-column: 4; grid-row: 2"
+								class="h-16 rounded-xl bg-gray-200 dark:bg-gray-700 text-base font-semibold text-gray-700 dark:text-gray-200 active:bg-gray-300 dark:active:bg-gray-600 transition-colors duration-75 touch-manipulation"
+								@click="buffer = ''"
+							>
+								{{ __('Clear') }}
+							</button>
+						</template>
+						<button
+							:style="activeTab ? 'grid-column: 4; grid-row: 3 / span 2' : 'grid-column: 1 / span 4'"
+							:class="[
+								'rounded-xl bg-secondary hover:bg-secondary-hover active:bg-secondary-active text-white text-lg font-bold flex items-center justify-center gap-1 transition-colors duration-75 touch-manipulation',
+								activeTab ? 'flex-col' : 'h-16',
+							]"
+							@click="updateItem"
+						>
+							<FeatherIcon name="check" class="w-7 h-7" />
+							{{ __('OK') }}
+						</button>
+					</div>
 				</div>
 			</div>
 		</Transition>
@@ -253,15 +137,15 @@
 <script setup>
 import { useToast } from "@/composables/useToast"
 import { usePOSSettingsStore } from "@/stores/posSettings"
-import { useSerialNumberStore } from "@/stores/serialNumber"
-import { formatCurrency as formatCurrencyUtil, getCurrencySymbol, roundCurrency } from "@/utils/currency"
-import { Button, FeatherIcon } from "frappe-ui"
+import { getCurrencySymbol, roundCurrency } from "@/utils/currency"
+import { FeatherIcon } from "frappe-ui"
 import { computed, ref, watch } from "vue"
-import SelectInput from "@/components/common/SelectInput.vue"
+
+const DISCOUNT_PRESETS = [0, 20, 30, 50]
+const MAX_INTEGER_DIGITS = 6
 
 const { showError } = useToast()
 const settingsStore = usePOSSettingsStore()
-const serialStore = useSerialNumberStore()
 
 const props = defineProps({
 	modelValue: Boolean,
@@ -274,283 +158,206 @@ const props = defineProps({
 
 const emit = defineEmits(["update:modelValue", "update-item"])
 
-// Local state
-const localItem = ref(null)
-const localQuantity = ref(1)
-const localRate = ref(0)
-const discountType = ref("percentage")
-const discountValue = ref(0)
-const calculatedSubtotal = ref(0)
-const calculatedDiscount = ref(0)
-const calculatedTotal = ref(0)
-const isInitializingItem = ref(false)
-const localSerials = ref([]) // List of serial numbers for this item
-const removedSerials = ref([]) // Track serials removed during this edit session
-const originalSerials = ref([]) // Original serials when dialog opened
-const originalPriceListRate = ref(0) // Original price_list_rate when dialog opened (for rate edit validation)
-
 const show = computed({
 	get: () => props.modelValue,
 	set: (val) => emit("update:modelValue", val),
 })
 
+// ─── Local state ────────────────────────────────────────────────────────────
+const localItem = ref(null)
+const localRate = ref(0)
+const localDiscount = ref(0)
+const originalPriceListRate = ref(0)
+
+const activeTab = ref(null)
+const buffer = ref(null)
+
 const currencySymbol = computed(() => getCurrencySymbol(props.currency))
 
-// Check if item has pricing rules applied (promotional offers)
-const hasPricingRules = computed(() => {
-	if (!localItem.value) return false
-	return Boolean(localItem.value.pricing_rules) && localItem.value.pricing_rules.length > 0
+const hasPricingRules = computed(
+	() =>
+		Boolean(localItem.value?.pricing_rules) &&
+		localItem.value.pricing_rules.length > 0,
+)
+const canEditRate = computed(
+	() => settingsStore.allowUserToEditRate && !hasPricingRules.value,
+)
+const canEditDiscount = computed(() => settingsStore.allowItemDiscount)
+
+const tabs = computed(() =>
+	[
+		canEditRate.value && { key: "rate", label: __("Adjust Price") },
+		canEditDiscount.value && { key: "discount", label: __("Discount") },
+	].filter(Boolean),
+)
+
+// Effective values include whatever is currently typed on the keypad
+const ratePrice = computed(() =>
+	activeTab.value === "rate" && buffer.value !== null
+		? Number.parseFloat(buffer.value) || 0
+		: localRate.value,
+)
+const discountPercent = computed(() =>
+	activeTab.value === "discount" && buffer.value !== null
+		? Number.parseFloat(buffer.value) || 0
+		: localDiscount.value,
+)
+
+const displayValue = computed(() => {
+	if (buffer.value !== null) return buffer.value || "0"
+	return activeTab.value === "rate"
+		? Number(localRate.value || 0).toFixed(2)
+		: String(roundCurrency(localDiscount.value || 0))
 })
 
-// Rate editing is allowed only if:
-// 1. POS Settings allows rate editing AND
-// 2. Item does NOT have pricing rules (promotional offers) applied
-const canEditRate = computed(() => {
-	return settingsStore.allowUserToEditRate && !hasPricingRules.value
-})
-
-// Tooltip message for why rate editing is disabled
-const rateEditDisabledReason = computed(() => {
-	if (!settingsStore.allowUserToEditRate) {
-		return __('Rate editing is disabled')
-	}
-	if (hasPricingRules.value) {
-		return __('Locked (offer applied)')
-	}
-	return ''
-})
-
-const discountTypeOptions = computed(() => [
-	{ value: 'percentage', label: __('Percentage (%)') },
-	{ value: 'amount', label: __('Amount') }
-])
-
-// Initialize local state when item changes
+// ─── Init ───────────────────────────────────────────────────────────────────
 watch(
 	() => props.item,
 	(newItem) => {
-		if (newItem) {
-			isInitializingItem.value = true
-			localItem.value = { ...newItem }
-			localQuantity.value = newItem.quantity || 1
-			localRate.value = newItem.rate || 0
-			// Store original price_list_rate for rate edit validation
-			originalPriceListRate.value = newItem.price_list_rate || newItem.rate || 0
-
-			// Initialize serial numbers
-			if (newItem.has_serial_no && newItem.serial_no) {
-				const serials = newItem.serial_no.split('\n').filter(s => s.trim())
-				localSerials.value = [...serials]
-				originalSerials.value = [...serials] // Keep original for cancel
-				removedSerials.value = [] // Reset removed serials tracker
-				// For serial items, quantity must match serial count
-				localQuantity.value = serials.length
-			} else {
-				localSerials.value = []
-				originalSerials.value = []
-				removedSerials.value = []
-			}
-
-			// Initialize discount
-			if (newItem.discount_percentage && newItem.discount_percentage > 0) {
-				discountType.value = "percentage"
-				discountValue.value = newItem.discount_percentage
-			} else if (newItem.discount_amount && newItem.discount_amount > 0) {
-				discountType.value = "amount"
-				discountValue.value = newItem.discount_amount
-			} else {
-				discountType.value = "percentage"
-				discountValue.value = 0
-			}
-
-			calculateTotals()
-			isInitializingItem.value = false
-		}
+		if (!newItem) return
+		localItem.value = { ...newItem }
+		localRate.value = newItem.rate || 0
+		originalPriceListRate.value = newItem.price_list_rate || newItem.rate || 0
+		localDiscount.value = roundCurrency(
+			Number(newItem.discount_percentage) || 0,
+		)
 	},
 	{ immediate: true },
 )
 
-/**
- * Intelligently determine the step size based on current quantity
- * - Whole numbers (1, 2, 3): step by 1
- * - Multiples of 0.5 (1.5, 2.5): step by 0.5
- * - Multiples of 0.25 (0.25, 0.75): step by 0.25
- * - Multiples of 0.1 (0.1, 0.3): step by 0.1
- * - Other decimals: step by 0.01
- */
-function getSmartStep(quantity) {
-	// Check if it's a whole number
-	if (quantity === Math.floor(quantity)) {
-		return 1
-	}
+watch(show, (open) => {
+	if (!open) return
+	buffer.value = null
+	activeTab.value = tabs.value[0]?.key ?? null
+})
 
-	// Round to 4 decimal places to avoid floating point errors
-	const rounded = Math.round(quantity * 10000) / 10000
-
-	// Check if it's a multiple of 0.5
-	if (Math.abs((rounded % 0.5)) < 0.0001) {
-		return 0.5
-	}
-
-	// Check if it's a multiple of 0.25
-	if (Math.abs((rounded % 0.25)) < 0.0001) {
-		return 0.25
-	}
-
-	// Check if it's a multiple of 0.1
-	if (Math.abs((rounded % 0.1)) < 0.0001) {
-		return 0.1
-	}
-
-	// For other decimals, use 0.01 for fine control
-	return 0.01
+// ─── Tabs & keypad ──────────────────────────────────────────────────────────
+function commitBuffer() {
+	if (buffer.value === null) return
+	if (activeTab.value === "rate") localRate.value = ratePrice.value
+	if (activeTab.value === "discount")
+		localDiscount.value = discountPercent.value
+	buffer.value = null
 }
 
-function incrementQuantity() {
-	const step = getSmartStep(localQuantity.value)
-	localQuantity.value = Math.round((localQuantity.value + step) * 10000) / 10000
-	calculateTotals()
+function selectTab(tab) {
+	if (tab === activeTab.value) return
+	commitBuffer()
+	activeTab.value = tab
 }
 
-function decrementQuantity() {
-	const step = getSmartStep(localQuantity.value)
-	const newQty = Math.round((localQuantity.value - step) * 10000) / 10000
+function applyPreset(preset) {
+	buffer.value = null
+	localDiscount.value = preset
+	updateItem()
+}
 
-	if (newQty > 0) {
-		localQuantity.value = newQty
-		calculateTotals()
+function isDiscountAllowed(percent) {
+	return settingsStore.validateDiscount(percent)
+}
+
+const digitKeys = [
+	"7",
+	"8",
+	"9",
+	"4",
+	"5",
+	"6",
+	"1",
+	"2",
+	"3",
+	"00",
+	"0",
+	".",
+].map((value, i) => ({
+	value,
+	style: { gridColumn: (i % 3) + 1, gridRow: Math.floor(i / 3) + 1 },
+}))
+
+function press(key) {
+	const current = buffer.value ?? ""
+	const [integer, decimals] = current.split(".")
+
+	if (key === ".") {
+		if (decimals === undefined) buffer.value = `${current || "0"}.`
+		return
 	}
-}
 
-function handleQuantityInput() {
-	// Allow any value during typing, just recalculate totals
-	// Don't validate or reset - let user type freely
-	if (localQuantity.value > 0 && !isNaN(localQuantity.value)) {
-		calculateTotals()
-	}
-}
-
-function handleQuantityBlur() {
-	// Validate and fix the quantity when user is done editing (leaves the field)
-	if (!localQuantity.value || localQuantity.value <= 0 || isNaN(localQuantity.value)) {
-		// If invalid, reset to 1
-		localQuantity.value = 1
+	let next
+	if (decimals !== undefined) {
+		next = (current + key).replace(/(\.\d{2}).*$/, "$1")
 	} else {
-		// Round to 4 decimal places for consistency
-		localQuantity.value = Math.round(localQuantity.value * 10000) / 10000
-	}
-	calculateTotals()
-}
-
-function handleDiscountTypeChange() {
-	// Reset discount value when type changes
-	discountValue.value = 0
-	calculateTotals()
-}
-
-function calculateDiscount() {
-	// Round to currency precision to prevent floating point precision issues (e.g., 10.000000000000002)
-	if (discountValue.value !== null && discountValue.value !== undefined && !isNaN(discountValue.value)) {
-		discountValue.value = roundCurrency(discountValue.value)
+		next = (integer + key).replace(/^0+(?=\d)/, "")
+		if (next.length > MAX_INTEGER_DIGITS) return
 	}
 
-	if (discountType.value === "percentage") {
-		// Ensure percentage doesn't exceed 100
-		if (discountValue.value > 100) {
-			discountValue.value = 100
-		}
-		calculatedDiscount.value = roundCurrency((calculatedSubtotal.value * discountValue.value) / 100)
-	} else {
-		// Ensure amount doesn't exceed subtotal
-		if (discountValue.value > calculatedSubtotal.value) {
-			discountValue.value = roundCurrency(calculatedSubtotal.value)
-		}
-		calculatedDiscount.value = roundCurrency(discountValue.value)
+	if (activeTab.value === "discount" && Number.parseFloat(next) > 100) return
+	buffer.value = next
+}
+
+function backspace() {
+	if (buffer.value === null) {
+		const value =
+			activeTab.value === "rate" ? localRate.value : localDiscount.value
+		buffer.value = value ? String(roundCurrency(value)) : ""
 	}
-	calculatedTotal.value = roundCurrency(calculatedSubtotal.value - calculatedDiscount.value)
+	buffer.value = buffer.value.slice(0, -1)
 }
 
-function calculateTotals() {
-	calculatedSubtotal.value = localRate.value * localQuantity.value
-	calculateDiscount()
-}
-
-function removeSerial(serialNo) {
-	// Remove from local list
-	const index = localSerials.value.indexOf(serialNo)
-	if (index > -1) {
-		localSerials.value.splice(index, 1)
-		// Track removed serial (will be returned to cache on confirm)
-		removedSerials.value.push(serialNo)
-		// Update quantity to match serial count
-		localQuantity.value = localSerials.value.length
-		calculateTotals()
-	}
-}
-
-function formatCurrency(amount) {
-	return formatCurrencyUtil(Number.parseFloat(amount || 0), props.currency)
-}
-
+// ─── Save ───────────────────────────────────────────────────────────────────
 function updateItem() {
-	// Check if rate was manually edited
-	const isRateManuallyEdited = localRate.value !== originalPriceListRate.value
+	commitBuffer()
 
-	// ========================================================================
-	// RATE EDIT VALIDATION
-	// ========================================================================
+	const rate = roundCurrency(localRate.value)
+	const isRateManuallyEdited =
+		rate !== roundCurrency(originalPriceListRate.value)
+
 	if (settingsStore.allowUserToEditRate && isRateManuallyEdited) {
-		// Validate rate is positive
-		if (localRate.value <= 0) {
-			showError(__('Rate must be greater than zero'))
+		if (rate <= 0) {
+			showError(__("Rate must be greater than zero"))
+			activeTab.value = "rate"
 			return
 		}
 
-		// Validate against max discount if rate was reduced
 		const maxDiscount = settingsStore.maxDiscountAllowed
-		if (maxDiscount > 0 && localRate.value < originalPriceListRate.value) {
-			const discountPercent = ((originalPriceListRate.value - localRate.value) / originalPriceListRate.value) * 100
-			const roundedDiscount = Math.round(discountPercent * 100) / 100
-
-			if (roundedDiscount > maxDiscount) {
+		if (maxDiscount > 0 && rate < originalPriceListRate.value) {
+			const reduction =
+				Math.round(
+					((originalPriceListRate.value - rate) / originalPriceListRate.value) *
+						10000,
+				) / 100
+			if (reduction > maxDiscount) {
 				showError(
-					__('Rate reduction of {0}% exceeds maximum allowed discount of {1}%', [
-						roundedDiscount.toFixed(2),
-						maxDiscount
-					])
+					__(
+						"Rate reduction of {0}% exceeds maximum allowed discount of {1}%",
+						[reduction.toFixed(2), maxDiscount],
+					),
 				)
+				activeTab.value = "rate"
 				return
 			}
 		}
 	}
 
-	const updatedItem = {
+	if (!isDiscountAllowed(localDiscount.value)) {
+		showError(
+			__("Maximum allowed discount is {0}%", [
+				settingsStore.maxDiscountAllowed,
+			]),
+		)
+		activeTab.value = "discount"
+		return
+	}
+
+	emit("update-item", {
 		...localItem.value,
-		quantity: localQuantity.value,
-		rate: localRate.value,
-		// Preserve price_list_rate for reference (original price before any manual edits)
+		rate,
 		price_list_rate: originalPriceListRate.value,
-		discount_percentage:
-			discountType.value === "percentage" ? discountValue.value : 0,
-		discount_amount:
-			discountType.value === "amount" ? discountValue.value : 0,
-		// Track manual rate edits for audit logging
+		discount_percentage: localDiscount.value,
+		discount_amount: 0,
 		is_rate_manually_edited: isRateManuallyEdited ? 1 : 0,
 		original_rate: isRateManuallyEdited ? originalPriceListRate.value : null,
-	}
-
-	// Update serial numbers if item has serials
-	if (localItem.value.has_serial_no) {
-		updatedItem.serial_no = localSerials.value.join('\n')
-		updatedItem.quantity = localSerials.value.length
-
-		// Return removed serials to cache now that update is confirmed
-		if (removedSerials.value.length > 0) {
-			serialStore.returnSerials(localItem.value.item_code, removedSerials.value)
-		}
-	}
-
-	emit("update-item", updatedItem)
+	})
 	show.value = false
 }
 
@@ -558,27 +365,3 @@ function cancel() {
 	show.value = false
 }
 </script>
-
-<style scoped>
-/* Hide number input spinners */
-input[type="number"]::-webkit-inner-spin-button,
-input[type="number"]::-webkit-outer-spin-button {
-	appearance: none;
-	-webkit-appearance: none;
-	margin: 0;
-}
-
-input[type="number"] {
-	appearance: textfield;
-	-moz-appearance: textfield;
-}
-
-/* Use CSS custom properties from index.css for consistent z-index layering */
-.z-dialog-overlay {
-	z-index: var(--z-dialog-overlay, 400);
-}
-
-.z-dialog-content {
-	z-index: var(--z-dialog-content, 500);
-}
-</style>
