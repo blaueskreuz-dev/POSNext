@@ -209,7 +209,7 @@
 			<div
 				v-if="shiftStore.hasOpenShift"
 				class="flex-1 flex overflow-hidden relative"
-				style="max-height: calc(100vh - 60px - var(--header-height, 60px))"
+				style="max-height: calc(100vh - var(--header-height, 60px))"
 			>
 				<!-- Icon-Only Management Slider - Always Visible -->
 				<ManagementSlider @menu-clicked="handleManagementMenuClick" />
@@ -406,7 +406,7 @@
 			<div
 				v-else
 				class="flex-1 flex items-center justify-center bg-gray-50"
-				style="max-height: calc(100vh - 60px - var(--header-height, 60px))"
+				style="max-height: calc(100vh - var(--header-height, 60px))"
 			>
 				<div class="text-center">
 					<div
@@ -937,9 +937,6 @@
 				@cancel="showClearCacheDialog = false"
 				@confirm="confirmClearCache"
 			/>
-
-			<!-- Footer -->
-			<POSFooter />
 		</template>
 
 		<!-- Session Lock Screen (outside v-if/v-else so it renders even during loading) -->
@@ -961,7 +958,6 @@ import ShiftOpeningDialog from "@/components/ShiftOpeningDialog.vue";
 import ClearCacheOverlay from "@/components/common/ClearCacheOverlay.vue";
 import SessionLockScreen from "@/components/common/SessionLockScreen.vue";
 import LoadingSpinner from "@/components/common/LoadingSpinner.vue";
-import POSFooter from "@/components/common/POSFooter.vue";
 import ManagementSlider from "@/components/pos/ManagementSlider.vue";
 import POSHeader from "@/components/pos/POSHeader.vue";
 import BatchSerialDialog from "@/components/sale/BatchSerialDialog.vue";

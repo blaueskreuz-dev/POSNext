@@ -76,11 +76,6 @@
 					<p class="ms-2 text-xs text-gray-500">{{ __('Loading more items...') }}</p>
 				</div>
 
-				<!-- End of Results Indicator - Show on last page when no more data -->
-				<div v-else-if="filteredItems.length > 0 && !searchTerm && currentPage === totalPages && totalPages >= 1" class="flex justify-center items-center py-3">
-					<p class="text-xs text-gray-400">{{ __('All items loaded') }}</p>
-				</div>
-
 				<!-- Search Results Count -->
 				<div v-else-if="searchTerm && filteredItems.length > 0" class="flex justify-center items-center py-3">
 					<p class="text-xs text-gray-500">{{ __('{0} items found', [filteredItems.length]) }}</p>
@@ -275,13 +270,6 @@
 									<div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
 									<p class="ms-2 text-xs text-gray-500">{{ __('Loading more items...') }}</p>
 								</div>
-							</td>
-						</tr>
-
-						<!-- End of Results Indicator Row - Show on last page when no more data -->
-						<tr v-else-if="filteredItems.length > 0 && !searchTerm && currentPage === totalPages && totalPages >= 1">
-							<td colspan="6" class="px-2 sm:px-3 py-3 text-center bg-white">
-								<p class="text-xs text-gray-400">{{ __('All items loaded') }}</p>
 							</td>
 						</tr>
 
