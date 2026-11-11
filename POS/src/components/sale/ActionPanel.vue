@@ -63,6 +63,7 @@
 			<button
 				type="button"
 				:class="buttonClass"
+				@click="emit('show-history')"
 			>
 				<span class="text-sm sm:text-base font-semibold text-center leading-tight">
 					{{ __("Invoice History") }}
@@ -201,5 +202,5 @@
 		() => displaySubtotal.value + props.taxAmount - props.discountAmount
 	)
 
-	const emit = defineEmits(["clear-cart", "save-draft", "show-drafts", "show-discount", "remove-discount", "show-return", "checkout"])
+	const emit = defineEmits(["clear-cart", "save-draft", "show-drafts", "show-discount", "remove-discount", "show-return", "show-history", "checkout"])
 </script>
