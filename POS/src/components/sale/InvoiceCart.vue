@@ -44,31 +44,10 @@
 		<div class="flex-1 overflow-y-auto p-0.5 sm:p-1.5 bg-gray-50">
 			<div
 				v-if="items.length === 0"
-				class="flex flex-col items-center justify-center h-full px-3 sm:px-4 py-6"
+				class="flex items-center justify-center h-full px-3 sm:px-4 py-6"
 			>
-				<!-- Empty Cart Icon & Message -->
-				<div
-					class="w-14 h-14 sm:w-16 sm:h-16 bg-gray-100 rounded-full flex items-center justify-center mb-3"
-				>
-					<svg
-						class="h-7 w-7 sm:h-8 sm:w-8 text-gray-400"
-						fill="none"
-						stroke="currentColor"
-						viewBox="0 0 24 24"
-					>
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							stroke-width="2"
-							d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
-						/>
-					</svg>
-				</div>
-				<p class="text-xs sm:text-sm font-semibold text-gray-900 mb-1">
+				<p class="text-lg text-gray-500">
 					{{ __("Your cart is empty") }}
-				</p>
-				<p class="text-[10px] sm:text-xs text-gray-500 mb-5 sm:mb-6">
-					{{ __("Select items to start or choose a quick action") }}
 				</p>
 			</div>
 
