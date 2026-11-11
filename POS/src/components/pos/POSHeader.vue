@@ -171,7 +171,6 @@
 					<!-- User Menu -->
 					<UserMenu
 						:user-name="userName"
-						:profile-name="profileName"
 						:profile-image="userImage"
 						@logout="$emit('logout')"
 						@menu-opened="$emit('menu-opened')"
