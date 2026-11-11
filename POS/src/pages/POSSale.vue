@@ -26,72 +26,6 @@
 			>
 				<template #menu-items>
 					<button
-						v-if="shiftStore.hasOpenShift"
-						@click="uiStore.showOpenShiftDialog = true"
-						class="w-full text-start px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 flex items-center gap-3 transition-colors"
-					>
-						<svg
-							class="w-5 h-5 text-blue-600"
-							fill="none"
-							stroke="currentColor"
-							viewBox="0 0 24 24"
-						>
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-							/>
-						</svg>
-						<span>{{ __("View Shift") }}</span>
-					</button>
-					<button
-						v-if="canAccessShiftActions"
-						@click="openDraftDialog"
-						class="w-full text-start px-4 py-2.5 text-sm text-gray-700 hover:bg-purple-50 flex items-center gap-3 transition-colors relative"
-					>
-						<svg
-							class="w-5 h-5 text-purple-600"
-							fill="none"
-							stroke="currentColor"
-							viewBox="0 0 24 24"
-						>
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-							/>
-						</svg>
-						<span>{{ __("Draft Invoices") }}</span>
-						<span
-							v-if="draftsStore.draftsCount > 0"
-							class="ms-auto text-xs bg-purple-600 text-white px-1.5 py-0.5 rounded-full"
-						>
-							{{ draftsStore.draftsCount }}
-						</span>
-					</button>
-					<button
-						v-if="canAccessShiftActions"
-						@click="openHistoryDialog"
-						class="w-full text-start px-4 py-2.5 text-sm text-gray-700 hover:bg-indigo-50 flex items-center gap-3 transition-colors"
-					>
-						<svg
-							class="w-5 h-5 text-indigo-600"
-							fill="none"
-							stroke="currentColor"
-							viewBox="0 0 24 24"
-						>
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-							/>
-						</svg>
-						<span>{{ __("Invoice History") }}</span>
-					</button>
-					<button
 						v-if="offlineStore.pendingInvoicesCount > 0"
 						@click="
 							uiStore.showOfflineInvoicesDialog = true;
@@ -120,26 +54,6 @@
 						</span>
 					</button>
 					<button
-						v-if="canAccessShiftActions"
-						@click="openReturnDialog"
-						class="w-full text-start px-4 py-2.5 text-sm text-gray-700 hover:bg-red-50 flex items-center gap-3 transition-colors"
-					>
-						<svg
-							class="w-5 h-5 text-red-600"
-							fill="none"
-							stroke="currentColor"
-							viewBox="0 0 24 24"
-						>
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"
-							/>
-						</svg>
-						<span>{{ __("Return Invoice") }}</span>
-					</button>
-					<button
 						v-if="canAccessShiftActions && canSwitchToDesk"
 						@click="switchToDesk"
 						class="w-full text-start px-4 py-2.5 text-sm text-gray-700 hover:bg-emerald-50 flex items-center gap-3 transition-colors"
@@ -158,26 +72,6 @@
 							/>
 						</svg>
 						<span>{{ __("Switch To Desk") }}</span>
-					</button>
-					<hr class="my-1 border-gray-100"> 
-					<button
-						@click="lockSession()"
-						class="w-full text-start px-4 py-2.5 text-sm text-gray-700 hover:bg-amber-50 flex items-center gap-3 transition-colors"
-					>
-						<svg
-							class="w-5 h-5 text-amber-600"
-							fill="none"
-							stroke="currentColor"
-							viewBox="0 0 24 24"
-						>
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-							/>
-						</svg>
-						<span>{{ __("Lock Screen") }}</span>
 					</button>
 				</template>
 				<template #additional-actions>
@@ -1030,7 +924,7 @@ const settingsStore = posSettingsStore;
 const { onStockUpdate } = useRealtimeStock();
 
 // Session lock (inactivity + tab-refocus)
-const { lock: lockSession, configure: configureSessionLock, startActivityTracking, stopActivityTracking } = useSessionLock();
+const { configure: configureSessionLock, startActivityTracking, stopActivityTracking } = useSessionLock();
 
 // POS Events system
 const {
