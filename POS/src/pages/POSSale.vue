@@ -21,7 +21,6 @@
 				:stock-sync-active="isStockSyncActive"
 				:is-refreshing="stockStore.refreshing"
 				@sync-click="handleSyncClick"
-				@refresh-click="handleRefresh"
 				@clear-cache="handleClearCache"
 				@logout="uiStore.showLogoutDialog = true"
 			>
@@ -2353,30 +2352,6 @@ async function handleCustomerUpdated(updatedCustomer) {
 	await customerSearchStore.addCustomerToCache(updatedCustomer);
 
 	showSuccess(__("{0} updated", [updatedCustomer.customer_name]));
-}
-
-async function handleRefresh() {
-	try {
-		log.info("Manual refresh initiated (items, customers, stock)");
-
-		// Refresh items, customers, and stock in parallel
-		await Promise.all([
-			// Refresh items from server (force server fetch)
-			itemStore.loadAllItems(shiftStore.profileName, true),
-			// Refresh customers from server (force reload)
-			customerSearchStore.loadAllCustomers(shiftStore.profileName, true),
-			// Refresh stock from server (preserves reservations internally)
-			stockStore.refresh(null, shiftStore.profileWarehouse),
-		]);
-
-		// Refresh cache stats to update "Last Updated" timestamp
-		const stats = await offlineWorker.getCacheStats();
-		itemStore.cacheStats = stats;
-
-		log.success("Manual refresh completed (items, customers, stock)");
-	} catch (error) {
-		log.error("Manual refresh failed:", error);
-	}
 }
 
 function handleClearCache() {

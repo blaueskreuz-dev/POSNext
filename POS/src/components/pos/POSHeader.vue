@@ -166,18 +166,6 @@
 						</div>
 					</div>
 
-					<!-- Refresh -->
-					<ActionButton
-						:icon="refreshIcon"
-						:title="isRefreshing ? __('Refreshing...') : __('Refresh')"
-						@click="$emit('refresh-click')"
-						:class="[
-							'touch-manipulation p-1 sm:p-2',
-							isRefreshing ? 'animate-spin' : ''
-						]"
-						:aria-label="isRefreshing ? __('Refreshing...') : __('Refresh items and customers')"
-					/>
-
 					<div class="w-px h-4 sm:h-6 bg-gray-200"></div>
 
 					<!-- User Menu -->
@@ -203,7 +191,6 @@
 </template>
 
 <script setup>
-import ActionButton from "@/components/common/ActionButton.vue"
 import UserMenu from "@/components/common/UserMenu.vue"
 import { DEFAULT_LOCALE } from "@/utils/currency"
 import { ref } from "vue"
@@ -212,7 +199,6 @@ const showCacheTooltip = ref(false)
 
 const emit = defineEmits([
 	"sync-click",
-	"refresh-click",
 	"logout",
 	"menu-opened",
 	"menu-closed",
@@ -341,8 +327,4 @@ function formatCompactNumber(num) {
 	}
 	return num.toString()
 }
-
-// SVG Path Icons
-const refreshIcon =
-	"M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
 </script>
