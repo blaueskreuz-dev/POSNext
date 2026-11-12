@@ -14,6 +14,12 @@ const routes = [
 		path: "/account/login",
 		component: () => import("@/pages/Login.vue"),
 	},
+	{
+		name: "CustomerDisplay",
+		path: "/customer-display",
+		component: () => import("@/pages/CustomerDisplay.vue"),
+		meta: { skipAuth: true },
+	},
 	// Catch-all route
 	{
 		path: "/:pathMatch(.*)*",
@@ -27,6 +33,8 @@ const router = createRouter({
 })
 
 router.beforeEach((to, from, next) => {
+	if (to.meta.skipAuth) return next()
+
 	// Check authentication status (session.user is already set in main.js before app mount)
 	const isLoggedIn = session.isLoggedIn
 

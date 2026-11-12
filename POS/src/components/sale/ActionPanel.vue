@@ -151,6 +151,7 @@
 	import { useFormatters } from "@/composables/useFormatters"
 	import { useSessionLock } from "@/composables/useSessionLock"
 	import { useToast } from "@/composables/useToast"
+	import { computeDisplayTotals } from "@/utils/cartTotals"
 	import { DEFAULT_CURRENCY, formatCurrency as formatCurrencyUtil } from "@/utils/currency"
 	import { openCashDrawer } from "@/utils/qzTray"
 
@@ -185,22 +186,10 @@
 		return formatCurrencyUtil(Number.parseFloat(amount || 0), props.currency)
 	}
 
-	// Includes free items; dedicated free item rows already carry their qty in `quantity`
-	const totalQuantity = computed(() =>
-		props.items.reduce((sum, item) => {
-			const freeQty = item.is_free_item ? 0 : item.free_qty || 0
-			return sum + (item.quantity || 0) + freeQty
-		}, 0)
-	)
-
-	// Shown net of tax so that Subtotal + Tax - Discount = Grand Total
-	const displaySubtotal = computed(() =>
-		props.taxInclusive ? props.subtotal - props.taxAmount : props.subtotal
-	)
-
-	const displayGrandTotal = computed(
-		() => displaySubtotal.value + props.taxAmount - props.discountAmount
-	)
+	const totals = computed(() => computeDisplayTotals(props))
+	const totalQuantity = computed(() => totals.value.totalQuantity)
+	const displaySubtotal = computed(() => totals.value.displaySubtotal)
+	const displayGrandTotal = computed(() => totals.value.displayGrandTotal)
 
 	const emit = defineEmits(["clear-cart", "save-draft", "show-drafts", "show-discount", "remove-discount", "show-return", "show-history", "checkout"])
 </script>

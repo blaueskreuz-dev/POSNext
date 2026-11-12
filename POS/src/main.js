@@ -26,6 +26,7 @@ import { logger } from "./utils/logger"
 import { offlineWorker } from "./utils/offline/workerClient"
 import translationPlugin from "./utils/translation"
 import { initSocket } from "./socket"
+import { CUSTOMER_DISPLAY_PATH } from "./composables/useCustomerDisplay"
 
 import {
 	Alert,
@@ -133,6 +134,14 @@ async function initializeApp() {
 	app.directive("touch-action", {
 		mounted: (el) => (el.style.touchAction = "manipulation"),
 	})
+
+	// CustomerDisplay only renders what the cart broadcasts
+	// Skip authentication, bootstrap and all other things that generate overhead for no reason
+	if (window.location.pathname.replace(/\/+$/, "") === CUSTOMER_DISPLAY_PATH) {
+		app.use(router)
+		app.mount("#app")
+		return
+	}
 
 	// -------------------------------------------------------------------------
 	// Authentication (CSRF + User fetched in parallel for faster startup)
