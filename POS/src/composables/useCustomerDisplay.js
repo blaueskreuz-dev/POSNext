@@ -7,7 +7,7 @@
  */
 
 import { computed, onUnmounted, ref, toValue, watch } from "vue"
-import { computeDisplayTotals } from "@/utils/cartTotals"
+import { computeDisplayTotals, computeLineTotal } from "@/utils/cartTotals"
 import { formatCurrency } from "@/utils/currency"
 import { useFormatters } from "./useFormatters"
 
@@ -58,7 +58,7 @@ export function useCustomerDisplayPublisher({ cartStore, currency }) {
 								? `${Number(item.discount_percentage).toFixed(0)}%`
 								: fmt(item.discount_amount)
 							: "",
-					total: fmt(item.amount || item.rate * item.quantity),
+					total: fmt(computeLineTotal(item)),
 				})),
 				totalQuantity: formatQuantity(totals.totalQuantity),
 				discount:

@@ -10,6 +10,11 @@
  * @param {number} params.discountAmount - Total discount amount
  * @param {boolean} params.taxInclusive - If prices include tax or not
  */
+
+export function computeLineTotal(item) {
+	return (item.rate || 0) * (item.quantity || 0) - (item.discount_amount || 0)
+}
+
 export function computeDisplayTotals({
 	items,
 	subtotal,

@@ -211,7 +211,7 @@
 
 					<!-- Line Total -->
 					<div class="text-lg font-bold text-gray-900 tabular-nums">
-						{{ formatCurrency(item.amount || item.rate * item.quantity) }}
+						{{ formatCurrency(computeLineTotal(item)) }}
 					</div>
 
 					<!-- Remove (empty cell on free item rows) -->
@@ -254,6 +254,7 @@ import { usePOSSettingsStore } from "@/stores/posSettings";
 import { usePOSOffersStore } from "@/stores/posOffers";
 import { useCustomerSearchStore } from "@/stores/customerSearch";
 import { DEFAULT_CURRENCY, formatCurrency as formatCurrencyUtil } from "@/utils/currency";
+import { computeLineTotal } from "@/utils/cartTotals";
 import { useFormatters } from "@/composables/useFormatters";
 import { useCartSort } from "@/composables/useCartSort";
 import { isOffline } from "@/utils/offline";
