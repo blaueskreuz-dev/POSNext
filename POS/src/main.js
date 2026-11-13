@@ -27,6 +27,7 @@ import { offlineWorker } from "./utils/offline/workerClient"
 import translationPlugin from "./utils/translation"
 import { initSocket } from "./socket"
 import { CUSTOMER_DISPLAY_PATH } from "./composables/useCustomerDisplay"
+import { installClickGuard } from "./utils/clickGuard"
 
 import {
 	Alert,
@@ -134,6 +135,10 @@ async function initializeApp() {
 	app.directive("touch-action", {
 		mounted: (el) => (el.style.touchAction = "manipulation"),
 	})
+
+	// POS touch hardware sometimes reports one tap as a quick double tap
+	// We ignore any press that starts within 100ms of the previous one
+	installClickGuard()
 
 	// CustomerDisplay only renders what the cart broadcasts
 	// Skip authentication, bootstrap and all other things that generate overhead for no reason
