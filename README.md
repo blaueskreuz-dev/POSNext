@@ -74,3 +74,25 @@ Each message is the full state, not a change, with all values already formatted 
 | POS screen closed, reloaded or logged out | `{ phase: "idle", data: null }` |
 
 Totals use the same calculation as the POS screen's totals panel (`POS/src/utils/cartTotals.js`), so both screens always show the same numbers.
+
+## Taxes (MWST)
+
+The POS only works with the customer-facing VAT rate and does not care about any internal rate.
+
+### Where the rate is stored
+
+- **Item Group**, custom Select field **Kunden-MWST-Satz** (`kundenmwstsatz`) with the options `8.1`, `2.6` and `0.0`.
+- Item has a field with the same name and options, but it is not fetched from the group and is currently not used.
+- An Item's rate comes from its Item Group. Parent groups are not considered, so every POS group needs its own value.
+- The custom field exists only on the brocki bench and is not shipped as a fixture. So if this gets installed on a different bench, no migration will happen
+- The Tax tab of Item and Item Group (Item Tax Templates) is not used.
+
+### Where the rate is read
+
+`pos_next/api/brocki_tax.py` is the only place that reads the field. Its endpoint `get_tax_rates(pos_profile)` returns `{item_group: rate}` for the groups the POS Profile can load (configured groups and their descendants, or all groups if none are configured). The frontend loads it once at startup.
+
+A rate of `None` means the item group has no value set.
+
+### Status
+
+The POS is being switched over to this rate. Until that is done, the cart (`calculateTotalTaxRate()` in `POS/src/composables/useInvoice.js`) still uses the POS Profile's Sales Taxes and Charges Template and adds every "On Net Total" row to every item. Whether ERPNext's booking already applies the group rate on the brocki bench is still being checked.
