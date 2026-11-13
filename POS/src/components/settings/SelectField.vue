@@ -1,13 +1,10 @@
 <template>
-	<div class="p-2 rounded hover:bg-gray-50 transition-colors">
-		<label :for="fieldId" class="block text-sm font-medium text-gray-900 mb-1">
-			{{ label }}
-		</label>
+	<label class="block px-4 py-3">
+		<p class="text-base font-semibold text-gray-900 dark:text-gray-100 mb-2">{{ label }}</p>
 		<select
-			:id="fieldId"
 			:value="modelValue"
+			class="w-full h-12 px-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-base text-gray-900 dark:text-gray-100 cursor-pointer focus:border-primary focus:ring-1 focus:ring-primary"
 			@change="$emit('update:modelValue', $event.target.value)"
-			class="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-transparent bg-white cursor-pointer"
 		>
 			<option value="">{{ __('-- Select --') }}</option>
 			<option
@@ -18,16 +15,14 @@
 				{{ option.label }}
 			</option>
 		</select>
-		<p v-if="description" class="text-xs text-gray-500 mt-0.5 leading-tight">
+		<p v-if="description" class="text-sm text-gray-500 dark:text-gray-400 mt-1">
 			{{ description }}
 		</p>
-	</div>
+	</label>
 </template>
 
 <script setup>
-import { computed } from "vue"
-
-const props = defineProps({
+defineProps({
 	modelValue: {
 		type: [String, Number],
 		default: "",
@@ -47,8 +42,4 @@ const props = defineProps({
 })
 
 defineEmits(["update:modelValue"])
-
-const fieldId = computed(
-	() => `select-${Math.random().toString(36).substr(2, 9)}`,
-)
 </script>

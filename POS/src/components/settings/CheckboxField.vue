@@ -1,23 +1,31 @@
 <template>
-	<div class="flex items-start gap-2.5 p-2 rounded hover:bg-gray-50 transition-colors">
-		<div class="flex items-center h-5">
-			<input
-				:id="fieldId"
-				type="checkbox"
-				:checked="modelValue"
-				@change="$emit('update:modelValue', $event.target.checked ? 1 : 0)"
-				class="w-4 h-4 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500 focus:ring-1 cursor-pointer"
-			/>
-		</div>
+	<button
+		type="button"
+		role="switch"
+		:aria-checked="isOn"
+		class="w-full min-h-[4rem] flex items-center gap-4 px-4 py-3 text-start active:bg-gray-50 dark:active:bg-gray-800 transition-colors duration-75 touch-manipulation"
+		@click="$emit('update:modelValue', isOn ? 0 : 1)"
+	>
 		<div class="flex-1 min-w-0">
-			<label :for="fieldId" class="block text-sm font-medium text-gray-900 cursor-pointer">
-				{{ label }}
-			</label>
-			<p v-if="description" class="text-xs text-gray-500 mt-0.5 leading-tight">
+			<p class="text-base font-semibold text-gray-900 dark:text-gray-100">{{ label }}</p>
+			<p v-if="description" class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
 				{{ description }}
 			</p>
 		</div>
-	</div>
+		<span
+			:class="[
+				'relative flex-shrink-0 w-14 h-8 rounded-full transition-colors duration-100',
+				isOn ? 'bg-primary' : 'bg-gray-300 dark:bg-gray-600',
+			]"
+		>
+			<span
+				:class="[
+					'absolute top-1 start-1 w-6 h-6 rounded-full bg-white shadow transition-transform duration-100',
+					isOn && 'translate-x-6 rtl:-translate-x-6',
+				]"
+			/>
+		</span>
+	</button>
 </template>
 
 <script setup>
@@ -40,7 +48,5 @@ const props = defineProps({
 
 defineEmits(["update:modelValue"])
 
-const fieldId = computed(
-	() => `checkbox-${Math.random().toString(36).substr(2, 9)}`,
-)
+const isOn = computed(() => Boolean(props.modelValue))
 </script>

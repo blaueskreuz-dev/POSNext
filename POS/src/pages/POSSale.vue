@@ -543,7 +543,6 @@
 			<POSSettings
 				v-model="showPOSSettings"
 				:pos-profile="shiftStore.profileName"
-				:current-warehouse="shiftStore.profileWarehouse"
 			/>
 
 			<!-- Stock Lookup Dialog (Products Menu) -->
