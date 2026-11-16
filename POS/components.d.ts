@@ -33,6 +33,7 @@ declare module 'vue' {
     LanguageSwitcher: typeof import('./src/components/common/LanguageSwitcher.vue')['default']
     LazyImage: typeof import('./src/components/common/LazyImage.vue')['default']
     LoadingSpinner: typeof import('./src/components/common/LoadingSpinner.vue')['default']
+    NumericKeypad: typeof import('./src/components/common/NumericKeypad.vue')['default']
     OffersDialog: typeof import('./src/components/sale/OffersDialog.vue')['default']
     OfflineInvoicesDialog: typeof import('./src/components/sale/OfflineInvoicesDialog.vue')['default']
     PartialPayments: typeof import('./src/components/partials/PartialPayments.vue')['default']

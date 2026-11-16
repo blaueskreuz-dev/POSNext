@@ -88,46 +88,32 @@
 							>%</span>
 					</div>
 
-					<!-- Keypad (same as PriceKeypadDialog) -->
-					<div class="grid grid-cols-4 gap-2">
-						<template v-if="activeTab">
+					<NumericKeypad
+						v-if="activeTab"
+						@press="press"
+						@backspace="backspace"
+						@clear="buffer = ''"
+					>
+						<template #confirm>
 							<button
-								v-for="key in digitKeys"
-								:key="key.value"
-								:style="key.style"
-								class="h-16 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-2xl font-semibold text-gray-900 dark:text-gray-100 active:bg-gray-200 dark:active:bg-gray-700 transition-colors duration-75 touch-manipulation"
-								@click="press(key.value)"
+								type="button"
+								:class="[okButtonClass, 'flex-col']"
+								@click="updateItem"
 							>
-								{{ key.value }}
-							</button>
-							<button
-								style="grid-column: 4; grid-row: 1"
-								class="h-16 rounded-xl bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 flex items-center justify-center active:bg-gray-300 dark:active:bg-gray-600 transition-colors duration-75 touch-manipulation"
-								:aria-label="__('Backspace')"
-								@click="backspace"
-							>
-								<FeatherIcon name="delete" class="w-6 h-6" />
-							</button>
-							<button
-								style="grid-column: 4; grid-row: 2"
-								class="h-16 rounded-xl bg-gray-200 dark:bg-gray-700 text-base font-semibold text-gray-700 dark:text-gray-200 active:bg-gray-300 dark:active:bg-gray-600 transition-colors duration-75 touch-manipulation"
-								@click="buffer = ''"
-							>
-								{{ __('Clear') }}
+								<FeatherIcon name="check" class="w-7 h-7" />
+								{{ __('OK') }}
 							</button>
 						</template>
-						<button
-							:style="activeTab ? 'grid-column: 4; grid-row: 3 / span 2' : 'grid-column: 1 / span 4'"
-							:class="[
-								'rounded-xl bg-secondary hover:bg-secondary-hover active:bg-secondary-active text-white text-lg font-bold flex items-center justify-center gap-1 transition-colors duration-75 touch-manipulation',
-								activeTab ? 'flex-col' : 'h-16',
-							]"
-							@click="updateItem"
-						>
-							<FeatherIcon name="check" class="w-7 h-7" />
-							{{ __('OK') }}
-						</button>
-					</div>
+					</NumericKeypad>
+					<button
+						v-else
+						type="button"
+						:class="[okButtonClass, 'w-full h-16']"
+						@click="updateItem"
+					>
+						<FeatherIcon name="check" class="w-7 h-7" />
+						{{ __('OK') }}
+					</button>
 				</div>
 			</div>
 		</Transition>
@@ -135,14 +121,18 @@
 </template>
 
 <script setup>
+import NumericKeypad from "@/components/common/NumericKeypad.vue"
 import { useToast } from "@/composables/useToast"
 import { usePOSSettingsStore } from "@/stores/posSettings"
 import { getCurrencySymbol, roundCurrency } from "@/utils/currency"
+import { appendDecimalKey } from "@/utils/keypadInput"
 import { FeatherIcon } from "frappe-ui"
 import { computed, ref, watch } from "vue"
 
 const DISCOUNT_PRESETS = [0, 20, 30, 50]
-const MAX_INTEGER_DIGITS = 6
+
+const okButtonClass =
+	"rounded-xl bg-secondary hover:bg-secondary-hover active:bg-secondary-active text-white text-lg font-bold flex items-center justify-center gap-1 transition-colors duration-75 touch-manipulation"
 
 const { showError } = useToast()
 const settingsStore = usePOSSettingsStore()
@@ -256,43 +246,11 @@ function isDiscountAllowed(percent) {
 	return settingsStore.validateDiscount(percent)
 }
 
-const digitKeys = [
-	"7",
-	"8",
-	"9",
-	"4",
-	"5",
-	"6",
-	"1",
-	"2",
-	"3",
-	"00",
-	"0",
-	".",
-].map((value, i) => ({
-	value,
-	style: { gridColumn: (i % 3) + 1, gridRow: Math.floor(i / 3) + 1 },
-}))
-
 function press(key) {
-	const current = buffer.value ?? ""
-	const [integer, decimals] = current.split(".")
-
-	if (key === ".") {
-		if (decimals === undefined) buffer.value = `${current || "0"}.`
-		return
-	}
-
-	let next
-	if (decimals !== undefined) {
-		next = (current + key).replace(/(\.\d{2}).*$/, "$1")
-	} else {
-		next = (integer + key).replace(/^0+(?=\d)/, "")
-		if (next.length > MAX_INTEGER_DIGITS) return
-	}
-
-	if (activeTab.value === "discount" && Number.parseFloat(next) > 100) return
-	buffer.value = next
+	const next = appendDecimalKey(buffer.value ?? "", key, {
+		max: activeTab.value === "discount" ? 100 : undefined,
+	})
+	if (next !== null) buffer.value = next
 }
 
 function backspace() {

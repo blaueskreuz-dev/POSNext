@@ -1,138 +1,143 @@
 <template>
-	<Dialog
-		v-model="show"
-		:options="{ title: __('Invoice History'), size: '5xl' }"
-	>
-		<template #body-content>
-			<div class="flex flex-col gap-4">
-				<!-- Filters -->
-				<div class="flex items-center gap-2">
-					<div class="flex-1">
-						<Input
-							v-model="searchTerm"
-							type="text"
-							:placeholder="__('Search by invoice number...')"
+	<!-- size "full" isn't a frappe-ui size, so no max-w-* is applied; the width cap lives in the <style> below -->
+	<Dialog v-model="show" :options="{ title: 'invoice-history', size: 'full' }">
+		<template #body>
+			<div class="h-[85vh] flex flex-col bg-white dark:bg-gray-900 p-5">
+				<!-- Header -->
+				<div class="flex items-start justify-between mb-4">
+					<h3 class="text-2xl font-semibold text-gray-900 dark:text-gray-100">
+						{{ __('Invoice History') }}
+					</h3>
+					<button
+						class="-me-2 -mt-1 p-2 rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 touch-manipulation"
+						:aria-label="__('Close')"
+						@click="show = false"
+					>
+						<FeatherIcon name="x" class="w-7 h-7" />
+					</button>
+				</div>
+
+				<div class="flex-1 min-h-0 flex gap-5">
+					<!-- List (start side) -->
+					<div class="flex-1 min-w-0 flex flex-col">
+						<!-- Initial loading -->
+						<div
+							v-if="loading && invoices.length === 0"
+							class="flex-1 flex flex-col items-center justify-center"
 						>
-							<template #prefix>
-								<svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-								</svg>
-							</template>
-						</Input>
-					</div>
-					<Button
-						variant="subtle"
-						@click="loadInvoices"
-						:loading="loading"
-						:title="__('Refresh')"
-					>
-						<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-						</svg>
-					</Button>
-				</div>
+							<div class="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
+							<p class="mt-3 text-base text-gray-500">{{ __('Loading invoices...') }}</p>
+						</div>
 
-				<!-- Invoices List -->
-				<div v-if="loading && invoices.length === 0" class="text-center py-8">
-					<div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
-					<p class="mt-3 text-xs text-gray-500">{{ __('Loading invoices...') }}</p>
-				</div>
+						<!-- Empty State -->
+						<div
+							v-else-if="invoices.length === 0"
+							class="flex-1 flex flex-col items-center justify-center text-center"
+						>
+							<FeatherIcon name="file-text" class="w-14 h-14 text-gray-300 mb-3" />
+							<p class="text-lg font-semibold text-gray-900 dark:text-gray-100">
+								{{ __('No invoices found') }}
+							</p>
+						</div>
 
-				<div v-else-if="invoices.length === 0" class="text-center py-8">
-					<svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-					</svg>
-					<p class="mt-2 text-sm text-gray-500">{{ __('No invoices found') }}</p>
-				</div>
-
-				<div v-else class="flex flex-col gap-2 max-h-96 overflow-y-auto pe-2">
-					<div
-						v-for="invoice in invoices"
-						:key="invoice.name"
-						class="bg-white border border-gray-200 rounded-lg p-3 hover:shadow-md transition-all"
-					>
-						<div class="flex items-start justify-between gap-3">
-							<!-- Invoice Info (Start Side) -->
-							<div class="flex-1 min-w-0">
-								<div class="flex items-center gap-2 mb-1 flex-wrap">
-									<h4 class="text-sm font-semibold text-gray-900">
-										{{ invoice.name }}
-									</h4>
-									<!-- Show Return badge (red) if it's a return invoice -->
-									<span
-										v-if="invoice.is_return"
-										class="text-xs px-2 py-0.5 rounded-full font-medium bg-red-100 text-red-800"
-									>
-										{{ __('Return') }}
-									</span>
-									<!-- Otherwise show regular status badge -->
-									<span
-										v-else
-										:class="[
-											'text-xs px-2 py-0.5 rounded-full font-medium',
-											getInvoiceStatusColor(invoice)
-										]"
-									>
-										{{ __(invoice.status) }}
-									</span>
-								</div>
-								<p class="text-xs text-gray-600 text-start">{{ invoice.customer_name }}</p>
-								<p class="text-xs text-gray-500 text-start">{{ formatDateTime(invoice.posting_date, invoice.posting_time) }}</p>
+						<!-- Invoices table (same look as the draft invoices dialog) -->
+						<div
+							v-else
+							class="flex-1 min-h-0 overflow-y-auto flex flex-col gap-2 rounded-xl bg-gray-100 dark:bg-gray-800 p-2 pt-0"
+						>
+							<div
+								:class="[
+									gridCols,
+									'sticky top-0 z-[1] bg-gray-100 dark:bg-gray-800 border border-transparent px-3 pt-3 pb-1 text-base font-semibold text-gray-600 dark:text-gray-400',
+								]"
+							>
+								<span>{{ __('Invoice') }}</span>
+								<span>{{ __('Date') }}</span>
+								<span class="text-end">{{ __('Total') }}</span>
+								<span></span>
 							</div>
 
-							<!-- Amount & Actions (End Side) -->
-							<div class="flex-shrink-0 flex flex-col items-end">
-								<p class="text-sm font-bold text-gray-900 text-end">
+							<div
+								v-for="invoice in invoices"
+								:key="invoice.name"
+								:class="[
+									gridCols,
+									'rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 shadow-sm px-3 py-2',
+								]"
+							>
+								<span class="text-base font-medium text-gray-900 dark:text-gray-100 truncate">
+									{{ invoice.name }}
+								</span>
+								<span class="text-lg text-gray-700 dark:text-gray-300 tabular-nums">
+									{{ formatPostingDateTime(invoice.posting_date, invoice.posting_time) }}
+								</span>
+								<span class="text-xl font-bold text-gray-900 dark:text-gray-100 tabular-nums text-end">
 									{{ formatCurrency(invoice.grand_total) }}
-								</p>
-								<div class="flex items-center gap-1 mt-2">
-									<button
-										@click="viewInvoice(invoice)"
-										class="p-1.5 hover:bg-blue-50 rounded transition-colors"
-										:title="__('View Details')"
-									>
-										<svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-										</svg>
-									</button>
-									<button
-										@click="printInvoice(invoice)"
-										class="p-1.5 hover:bg-green-50 rounded transition-colors"
-										:title="__('Print')"
-									>
-										<svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
-										</svg>
-									</button>
+								</span>
+								<div class="flex items-center justify-end gap-2">
 									<button
 										v-if="canCreateReturn(invoice)"
+										type="button"
+										:class="[actionButtonClass, 'bg-secondary hover:bg-secondary-hover active:bg-secondary-active']"
 										@click="openReturnModal(invoice)"
-										class="p-1.5 hover:bg-orange-50 rounded transition-colors"
-										:title="__('Create Return')"
 									>
-										<svg class="w-4 h-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
-										</svg>
+										{{ __('Return') }}
+									</button>
+									<button
+										type="button"
+										:class="[actionButtonClass, 'bg-primary hover:bg-primary-hover active:bg-primary-active']"
+										@click="printInvoice(invoice)"
+									>
+										{{ __('Print') }}
+									</button>
+									<button
+										type="button"
+										:class="[actionButtonClass, 'bg-primary hover:bg-primary-hover active:bg-primary-active']"
+										@click="viewInvoice(invoice)"
+									>
+										{{ __('View') }}
 									</button>
 								</div>
 							</div>
+
+							<!-- Load More -->
+							<button
+								v-if="hasMore"
+								type="button"
+								class="shrink-0 h-14 mt-1 rounded-xl bg-primary hover:bg-primary-hover active:bg-primary-active disabled:opacity-60 text-white text-lg font-semibold transition-colors duration-75 touch-manipulation"
+								:disabled="loading"
+								@click="loadMore"
+							>
+								{{ loading ? __('Loading...') : __('Load More') }}
+							</button>
 						</div>
 					</div>
-				</div>
 
-				<!-- Load More -->
-				<div v-if="hasMore && invoices.length > 0" class="text-center">
-					<Button variant="subtle" @click="loadMore" :loading="loading">
-						{{ __('Load More') }}
-					</Button>
+					<!-- Search + keypad (end side) -->
+					<div class="w-96 shrink-0 flex flex-col gap-3">
+						<div class="relative">
+							<FeatherIcon
+								name="search"
+								class="absolute start-4 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-400 pointer-events-none"
+							/>
+							<!-- inputmode="none": keypad instead of the OS keyboard; scanners and hardware keyboards still work -->
+							<input
+								v-model="searchTerm"
+								type="text"
+								inputmode="none"
+								:placeholder="__('Invoice Number')"
+								class="w-full h-16 ps-14 pe-4 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-2xl font-semibold tabular-nums text-gray-900 dark:text-gray-100 placeholder:text-lg placeholder:font-normal placeholder:text-gray-400 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+							/>
+						</div>
+						<NumericKeypad
+							:decimal="false"
+							@press="searchTerm += $event"
+							@backspace="searchTerm = searchTerm.slice(0, -1)"
+							@clear="searchTerm = ''"
+						/>
+					</div>
 				</div>
 			</div>
-		</template>
-		<template #actions>
-			<Button variant="subtle" @click="show = false">
-				{{ __('Close') }}
-			</Button>
 		</template>
 	</Dialog>
 
@@ -148,11 +153,15 @@
 </template>
 
 <script setup>
+import NumericKeypad from "@/components/common/NumericKeypad.vue"
 import { useToast } from "@/composables/useToast"
-import { DEFAULT_CURRENCY, DEFAULT_LOCALE, formatCurrency as formatCurrencyUtil } from "@/utils/currency"
-import { getInvoiceStatusColor } from "@/utils/invoice"
-import { Button, Dialog, Input, call } from "frappe-ui"
-import { onBeforeUnmount, ref, watch } from "vue"
+import {
+	DEFAULT_CURRENCY,
+	formatCurrency as formatCurrencyUtil,
+} from "@/utils/currency"
+import { formatPostingDateTime } from "@/utils/dateTime"
+import { Dialog, FeatherIcon, call } from "frappe-ui"
+import { computed, onBeforeUnmount, ref, watch } from "vue"
 import ReturnInvoiceDialog from "./ReturnInvoiceDialog.vue"
 
 const { showError } = useToast()
@@ -171,9 +180,23 @@ function formatCurrency(amount) {
 	return formatCurrencyUtil(Number.parseFloat(amount || 0), props.currency)
 }
 
-const emit = defineEmits(["update:modelValue", "create-return", "view-invoice", "print-invoice", "return-created"])
+const emit = defineEmits([
+	"update:modelValue",
+	"create-return",
+	"view-invoice",
+	"print-invoice",
+	"return-created",
+])
 
-const show = ref(props.modelValue)
+const gridCols = "grid grid-cols-[minmax(0,1fr)_11rem_9rem_21rem] items-center gap-3"
+
+const actionButtonClass = "w-24 h-14 flex items-center justify-center rounded-xl text-white text-lg font-semibold shadow-sm transition-colors duration-75 touch-manipulation"
+
+const show = computed({
+	get: () => props.modelValue,
+	set: (value) => emit("update:modelValue", value),
+})
+
 const invoices = ref([])
 const searchTerm = ref("")
 const page = ref(0)
@@ -244,13 +267,11 @@ async function fetchInvoices({ append = false } = {}) {
 }
 
 watch(
-	() => props.modelValue,
-	(val) => {
-		show.value = val
-		if (val) {
-			loadInvoices()
-		}
+	show,
+	(open) => {
+		if (open) loadInvoices()
 	},
+	{ immediate: true },
 )
 
 watch(searchTerm, () => {
@@ -259,10 +280,6 @@ watch(searchTerm, () => {
 })
 
 onBeforeUnmount(() => clearTimeout(searchTimeout))
-
-watch(show, (val) => {
-	emit("update:modelValue", val)
-})
 
 // Clear selected invoice when return dialog closes
 watch(showReturnDialog, (val) => {
@@ -295,7 +312,11 @@ function canCreateReturn(invoice) {
 	// 1. Invoice is submitted (docstatus === 1)
 	// 2. Not already a return invoice
 	// 3. Status is not "Credit Note Issued" (already has a return)
-	return invoice.docstatus === 1 && !invoice.is_return && invoice.status !== 'Credit Note Issued'
+	return (
+		invoice.docstatus === 1 &&
+		!invoice.is_return &&
+		invoice.status !== "Credit Note Issued"
+	)
 }
 
 function openReturnModal(invoice) {
@@ -309,16 +330,10 @@ function handleReturnCreated(returnInvoice) {
 	// Emit the event to parent
 	emit("return-created", returnInvoice)
 }
-
-function formatDateTime(date, time) {
-	const dateStr = new Date(date).toLocaleDateString(DEFAULT_LOCALE, {
-		month: "short",
-		day: "numeric",
-		year: "numeric",
-	})
-	if (time) {
-		return `${dateStr} ${time}`
-	}
-	return dateStr
-}
 </script>
+
+<style>
+.dialog-overlay[data-dialog="invoice-history"] .dialog-content {
+	max-width: 96rem;
+}
+</style>

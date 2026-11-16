@@ -51,42 +51,23 @@
 						<span class="text-lg font-medium text-gray-500 dark:text-gray-400 ms-2">%</span>
 					</div>
 
-					<div class="grid grid-cols-4 gap-2">
-						<button
-							v-for="key in digitKeys"
-							:key="key.value"
-							:style="key.style"
-							class="h-16 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-2xl font-semibold text-gray-900 dark:text-gray-100 active:bg-gray-200 dark:active:bg-gray-700 transition-colors duration-75 touch-manipulation"
-							@click="press(key.value)"
-						>
-							{{ key.value }}
-						</button>
-
-						<button
-							style="grid-column: 4; grid-row: 1"
-							class="h-16 rounded-xl bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 flex items-center justify-center active:bg-gray-300 dark:active:bg-gray-600 transition-colors duration-75 touch-manipulation"
-							:aria-label="__('Backspace')"
-							@click="backspace"
-						>
-							<FeatherIcon name="delete" class="w-6 h-6" />
-						</button>
-						<button
-							style="grid-column: 4; grid-row: 2"
-							class="h-16 rounded-xl bg-gray-200 dark:bg-gray-700 text-base font-semibold text-gray-700 dark:text-gray-200 active:bg-gray-300 dark:active:bg-gray-600 transition-colors duration-75 touch-manipulation"
-							@click="buffer = ''"
-						>
-							{{ __('Clear') }}
-						</button>
-						<button
-							style="grid-column: 4; grid-row: 3 / span 2"
-							:disabled="!canConfirm"
-							class="rounded-xl bg-green-600 text-white text-lg font-bold flex flex-col items-center justify-center gap-1 active:bg-green-700 disabled:bg-gray-200 disabled:text-gray-400 dark:disabled:bg-gray-800 dark:disabled:text-gray-600 transition-colors duration-75 touch-manipulation"
-							@click="apply(customPercentage)"
-						>
-							<FeatherIcon name="check" class="w-7 h-7" />
-							{{ __('Apply') }}
-						</button>
-					</div>
+					<NumericKeypad
+						@press="press"
+						@backspace="backspace"
+						@clear="buffer = ''"
+					>
+						<template #confirm>
+							<button
+								type="button"
+								:disabled="!canConfirm"
+								class="rounded-xl bg-green-600 text-white text-lg font-bold flex flex-col items-center justify-center gap-1 active:bg-green-700 disabled:bg-gray-200 disabled:text-gray-400 dark:disabled:bg-gray-800 dark:disabled:text-gray-600 transition-colors duration-75 touch-manipulation"
+								@click="apply(customPercentage)"
+							>
+								<FeatherIcon name="check" class="w-7 h-7" />
+								{{ __('Apply') }}
+							</button>
+						</template>
+					</NumericKeypad>
 				</div>
 			</div>
 		</Transition>
@@ -94,6 +75,8 @@
 </template>
 
 <script setup>
+import NumericKeypad from "@/components/common/NumericKeypad.vue"
+import { appendDecimalKey } from "@/utils/keypadInput"
 import { FeatherIcon } from "frappe-ui"
 import { computed, ref, watch } from "vue"
 
@@ -114,18 +97,6 @@ const show = computed({
 	set: (value) => emit("update:modelValue", value),
 })
 
-const digitKeys = ["7", "8", "9", "4", "5", "6", "1", "2", "3", "0", "."].map(
-	(value, i) => ({
-		value,
-		style:
-			value === "0"
-				? { gridColumn: "1 / span 2", gridRow: 4 }
-				: value === "."
-					? { gridColumn: 3, gridRow: 4 }
-					: { gridColumn: (i % 3) + 1, gridRow: Math.floor(i / 3) + 1 },
-	}),
-)
-
 const buffer = ref("")
 
 watch(show, (open) => {
@@ -137,17 +108,8 @@ const customPercentage = computed(() => Number.parseFloat(buffer.value) || 0)
 const canConfirm = computed(() => customPercentage.value > 0)
 
 function press(key) {
-	const [, decimals] = buffer.value.split(".")
-
-	if (key === ".") {
-		if (decimals === undefined) buffer.value = `${buffer.value || "0"}.`
-		return
-	}
-
-	const next = (buffer.value + key)
-		.replace(/(\.\d{2}).*$/, "$1")
-		.replace(/^0+(?=\d)/, "")
-	if (Number.parseFloat(next) <= 100) buffer.value = next
+	const next = appendDecimalKey(buffer.value, key, { max: 100 })
+	if (next !== null) buffer.value = next
 }
 
 function backspace() {
