@@ -55,6 +55,7 @@
 			<button
 				type="button"
 				:class="buttonClass"
+				@click="emit('reprint-last')"
 			>
 				<span class="text-sm sm:text-base font-semibold text-center leading-tight">
 					{{ __("Reprint Invoice") }}
@@ -191,5 +192,5 @@
 	const displaySubtotal = computed(() => totals.value.displaySubtotal)
 	const displayGrandTotal = computed(() => totals.value.displayGrandTotal)
 
-	const emit = defineEmits(["clear-cart", "save-draft", "show-drafts", "show-discount", "remove-discount", "show-return", "show-history", "checkout"])
+	const emit = defineEmits(["clear-cart", "save-draft", "show-drafts", "show-discount", "remove-discount", "show-return", "show-history", "reprint-last", "checkout"])
 </script>

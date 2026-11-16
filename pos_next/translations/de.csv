@@ -1438,3 +1438,6 @@
 "{0}%","{0}%",""
 "Printer","Drucker",""
 "Silent Print Certificate","Zertifikat für stilles Drucken",""
+"Reprint is not available while offline","Nachdruck ist offline nicht verfügbar",""
+"Failed to load last invoice","Letzte Rechnung konnte nicht geladen werden",""
+"No invoice to reprint","Keine Rechnung zum Nachdrucken",""

@@ -295,6 +295,7 @@
 						@remove-discount="cartStore.clearCartDiscount"
 						@show-return="openReturnDialog"
 						@show-history="openHistoryDialog"
+						@reprint-last="handleReprintLastInvoice"
 						@checkout="handleProceedToPayment"
 					/>
 
@@ -1962,6 +1963,8 @@ async function handlePaymentCompleted(paymentData) {
 				const invoiceName = result.name || result.message?.name || __("Unknown");
 				const invoiceTotal = result.grand_total || result.total || 0;
 				const paidAmount = paymentData.paid_amount || invoiceTotal;
+				// Remember for reprinting Invoice
+				uiStore.lastInvoiceName = invoiceName;
 
 				uiStore.showPaymentDialog = false;
 				cartStore.clearCart();
@@ -2654,6 +2657,46 @@ async function handlePrintInvoice(invoiceData) {
 			indicator: "red",
 		});
 	}
+}
+
+/**
+ * Reprint the most recent invoice of this POS profile.
+ * Uses the invoice submitted in this session if known, otherwise asks the server
+ * to prevent reprint issues on offline states getting back online or page reloads
+ */
+async function handleReprintLastInvoice() {
+	// TODO: We probably have to change this up because the whole print process will be
+	// moved to offline functionality
+	if (offlineStore.isOffline) {
+		showWarning(__("Reprint is not available while offline"));
+		return;
+	}
+
+	let name = uiStore.lastInvoiceName;
+
+	// Try to load offline invoice synced later via the server
+	if (!name || name.startsWith("OFFLINE-")) {
+		try {
+			const rows = await call("frappe.client.get_list", {
+				doctype: "Sales Invoice",
+				filters: { is_pos: 1, docstatus: 1, pos_profile: shiftStore.profileName },
+				fields: ["name"],
+				order_by: "creation desc",
+				limit_page_length: 1,
+			});
+			name = rows?.[0]?.name;
+		} catch (error) {
+			log.error("Failed to load last invoice:", error);
+			showError(__("Failed to load last invoice"));
+			return;
+		}
+	}
+	if (!name) {
+		showWarning(__("No invoice to reprint"));
+		return;
+	}
+
+	await handlePrintInvoice({ name });
 }
 
 // Note: handleLoadDraft already exists above, will delegate to it
