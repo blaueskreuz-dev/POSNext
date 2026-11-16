@@ -29,7 +29,7 @@ export function useInvoice() {
 	const posOpeningShift = ref(null) // POS Opening Shift name
 	const additionalDiscount = ref(0)
 	const couponCode = ref(null)
-	const taxRules = ref([]) // Tax rules from POS Profile
+	const taxRatesByGroup = ref({})
 	const taxInclusive = ref(false) // Tax inclusive setting from POS Settings
 
 	// Submission state - prevents duplicate submissions
@@ -149,8 +149,8 @@ export function useInvoice() {
 		return { rate, price_list_rate: rate }
 	}
 
-	const getTaxesResource = createResource({
-		url: "pos_next.api.pos_profile.get_taxes",
+	const getTaxRatesResource = createResource({
+		url: "pos_next.api.brocki_tax.get_tax_rates",
 		auto: false,
 	})
 
@@ -516,37 +516,13 @@ export function useInvoice() {
 		rebuildIncrementalCache()
 	}
 
-	// Performance: Cache tax calculation to avoid repeated loops
-	let cachedTaxRate = 0
-	let taxRulesCacheKey = ""
-
-	function calculateTotalTaxRate() {
-		// Create cache key from tax rules
-		const currentKey = JSON.stringify(taxRules.value)
-
-		// Return cached value if tax rules haven't changed
-		if (currentKey === taxRulesCacheKey && cachedTaxRate !== 0) {
-			return cachedTaxRate
-		}
-
-		// Calculate total tax rate
-		let totalRate = 0
-		if (taxRules.value && taxRules.value.length > 0) {
-			for (const taxRule of taxRules.value) {
-				if (
-					taxRule.charge_type === "On Net Total" ||
-					taxRule.charge_type === "On Previous Row Total"
-				) {
-					totalRate += taxRule.rate || 0
-				}
-			}
-		}
-
-		// Cache the result
-		cachedTaxRate = totalRate
-		taxRulesCacheKey = currentKey
-
-		return totalRate
+	/**
+	 * Brocki VAT rate (percent) for a cart line: the "Kunden-MWST-Satz" of the
+	 * item's own Item Group. Parent groups are not consulted (see brocki_tax.py).
+	 * A group without a rate counts as 0 %.
+	 */
+	function getItemTaxRate(item) {
+		return taxRatesByGroup.value[item.item_group] ?? 0
 	}
 
 	function rebuildIncrementalCache() {
@@ -624,7 +600,7 @@ export function useInvoice() {
 
 		// Calculate tax based on inclusive/exclusive mode
 		// Use currency precision for all monetary calculations to match ERPNext
-		const totalTaxRate = calculateTotalTaxRate()
+		const totalTaxRate = getItemTaxRate(item)
 		let netAmount = 0
 		let taxAmount = 0
 
@@ -1137,31 +1113,39 @@ export function useInvoice() {
 		}
 	}
 
-	async function loadTaxRules(profileName, posSettings = null) {
-		/**
-		 * Load tax rules from POS Profile and tax inclusive setting from POS Settings
-		 */
+	// Fetch the VAT rates per Item Group from the server. A copy is kept in
+	// localStorage so an offline start can still use the last known rates.
+	async function loadTaxRatesByGroup(profileName) {
+		const storageKey = `pos_next_tax_rates::${profileName}`
 		try {
-			const result = await getTaxesResource.submit({ pos_profile: profileName })
-			taxRules.value = result?.data || result || []
-
-			// Load tax inclusive setting from POS Settings if provided
-			if (posSettings && posSettings.tax_inclusive !== undefined) {
-				taxInclusive.value = posSettings.tax_inclusive || false
-			}
-
-			// Recalculate all items with new tax rules and tax inclusive setting
-			invoiceItems.value.forEach((item) => recalculateItem(item))
-
-			// Rebuild cache after bulk operation
-			rebuildIncrementalCache()
-
-			return taxRules.value
+			const rates = (await getTaxRatesResource.submit({ pos_profile: profileName })) || {}
+			try {
+				localStorage.setItem(storageKey, JSON.stringify(rates))
+			} catch {}
+			return rates
 		} catch (error) {
-			console.error("Error loading tax rules:", error)
-			taxRules.value = []
-			return []
+			log.warn("Could not fetch tax rates, using last cached rates", error)
+			try {
+				return JSON.parse(localStorage.getItem(storageKey)) || {}
+			} catch {
+				return {}
+			}
 		}
+	}
+
+	async function loadTaxRules(profileName, posSettings = null) {
+		taxRatesByGroup.value = await loadTaxRatesByGroup(profileName)
+
+		// Load tax inclusive setting from POS Settings if provided
+		if (posSettings && posSettings.tax_inclusive !== undefined) {
+			taxInclusive.value = posSettings.tax_inclusive || false
+		}
+
+		invoiceItems.value.forEach((item) => recalculateItem(item))
+
+		rebuildIncrementalCache()
+
+		return taxRatesByGroup.value
 	}
 
 	function setTaxInclusive(value) {
@@ -1187,7 +1171,7 @@ export function useInvoice() {
 		posOpeningShift,
 		additionalDiscount,
 		couponCode,
-		taxRules,
+		taxRatesByGroup,
 		taxInclusive,
 		isSubmitting,
 
@@ -1231,6 +1215,5 @@ export function useInvoice() {
 		validateCartItemsResource,
 		applyOffersResource,
 		getItemDetailsResource,
-		getTaxesResource,
 	}
 }
