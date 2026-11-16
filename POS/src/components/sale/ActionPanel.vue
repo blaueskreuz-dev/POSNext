@@ -174,7 +174,6 @@
 		subtotal: { type: Number, default: 0 },
 		taxAmount: { type: Number, default: 0 },
 		discountAmount: { type: Number, default: 0 },
-		taxInclusive: Boolean,
 		currency: { type: String, default: DEFAULT_CURRENCY }
 	})
 

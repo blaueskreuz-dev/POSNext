@@ -42,7 +42,6 @@ export function useCustomerDisplayPublisher({ cartStore, currency }) {
 			subtotal: cartStore.subtotal,
 			taxAmount: cartStore.totalTax,
 			discountAmount: cartStore.totalDiscount,
-			taxInclusive: cartStore.taxInclusive,
 		})
 		return {
 			phase: "cart",

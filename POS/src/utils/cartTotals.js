@@ -8,7 +8,6 @@
  * @param {number} params.subtotal - Subtotal
  * @param {number} params.taxAmount - Total tax amount
  * @param {number} params.discountAmount - Total discount amount
- * @param {boolean} params.taxInclusive - If prices include tax or not
  */
 
 export function computeLineTotal(item) {
@@ -20,14 +19,14 @@ export function computeDisplayTotals({
 	subtotal,
 	taxAmount,
 	discountAmount,
-	taxInclusive,
 }) {
 	const totalQuantity = items.reduce((sum, item) => {
 		const freeQty = item.is_free_item ? 0 : item.free_qty || 0
 		return sum + (item.quantity || 0) + freeQty
 	}, 0)
 
-	const displaySubtotal = taxInclusive ? subtotal - taxAmount : subtotal
+	// Prices include tax: show the net subtotal, then add the extracted tax back
+	const displaySubtotal = subtotal - taxAmount
 	const displayGrandTotal = displaySubtotal + taxAmount - discountAmount
 
 	return { totalQuantity, displaySubtotal, displayGrandTotal }

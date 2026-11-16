@@ -30,7 +30,6 @@ export function useInvoice() {
 	const additionalDiscount = ref(0)
 	const couponCode = ref(null)
 	const taxRatesByGroup = ref({})
-	const taxInclusive = ref(false) // Tax inclusive setting from POS Settings
 
 	// Submission state - prevents duplicate submissions
 	const isSubmitting = ref(false)
@@ -168,21 +167,11 @@ export function useInvoice() {
 	})
 
 	// ========================================================================
-	// COMPUTED TOTALS - IMPORTANT: Subtotal uses price_list_rate (original price)
+	// COMPUTED TOTALS - prices are always tax-inclusive
 	// ========================================================================
-	// Formula depends on tax_inclusive mode:
-	//
-	// TAX EXCLUSIVE (default):
-	// - Subtotal: Sum of (price_list_rate × quantity) = net amounts
-	// - Tax: Calculated and added on top
-	// - Grand Total = Subtotal - Discount + Tax
-	//
-	// TAX INCLUSIVE:
 	// - Subtotal: Sum of (price_list_rate × quantity) = gross amounts (includes tax)
-	// - Tax: Extracted from prices (for display only)
-	// - Grand Total = Subtotal - Discount (tax already included!)
-	//
-	// This ensures tax is not double-counted in inclusive mode!
+	// - Tax: Extracted from the gross prices (for display only)
+	// - Grand Total = Subtotal - Discount (tax is already included, never added)
 	// ========================================================================
 	// Use roundCurrency for monetary totals to match ERPNext's currency precision (from System Settings)
 	const subtotal = computed(() => roundCurrency(_cachedSubtotal.value))
@@ -193,18 +182,7 @@ export function useInvoice() {
 	const grandTotal = computed(() => {
 		const discount =
 			_cachedTotalDiscount.value + (additionalDiscount.value || 0)
-
-		if (taxInclusive.value) {
-			// Tax inclusive: Subtotal already includes tax, so don't add it again
-			// Use roundCurrency to match ERPNext's currency precision (from System Settings)
-			return roundCurrency(_cachedSubtotal.value - discount)
-		} else {
-			// Tax exclusive: Add tax on top of subtotal
-			// Use roundCurrency to match ERPNext's currency precision (from System Settings)
-			return roundCurrency(
-				_cachedSubtotal.value + _cachedTotalTax.value - discount,
-			)
-		}
+		return roundCurrency(_cachedSubtotal.value - discount)
 	})
 	const totalPaid = computed(() => _cachedTotalPaid.value)
 
@@ -560,19 +538,16 @@ export function useInvoice() {
 	 * Calculation Flow:
 	 * 1. Base Amount    = price_list_rate × quantity
 	 * 2. Discount       = Applied based on percentage or fixed amount
-	 * 3. Net Amount     = Base Amount - Discount (may include/exclude tax)
-	 * 4. Tax Amount     = Calculated based on tax_inclusive mode
-	 * 5. Final Amount   = Stored in item.amount for backend processing
+	 * 3. Gross Amount   = Base Amount - Discount (includes tax)
+	 * 4. Tax Amount     = Extracted from the gross amount at the item's VAT rate
+	 * 5. Net Amount     = Gross - Tax, stored in item.amount
 	 *
 	 * Important Design Decisions:
 	 * - item.rate always reflects the original list price (price_list_rate)
 	 * - Discounts are stored separately (discount_amount, discount_percentage)
 	 * - This allows UI to display original prices with clear discount visibility
-	 * - Backend receives calculated net rate (amount/quantity) for accurate totals
 	 *
-	 * Tax Modes:
-	 * - Tax Inclusive: Price includes tax. Extract net = gross / (1 + tax_rate)
-	 * - Tax Exclusive: Tax added on top. Tax = net × tax_rate
+	 * Prices always include tax: net = gross / (1 + tax_rate), tax = gross - net
 	 *
 	 * @param {Object} item - Invoice item object with quantity, rates, and discount fields
 	 */
@@ -598,22 +573,12 @@ export function useInvoice() {
 		}
 		item.discount_amount = discountAmount
 
-		// Calculate tax based on inclusive/exclusive mode
+		// Extract the tax from the gross amount
 		// Use currency precision for all monetary calculations to match ERPNext
-		const totalTaxRate = getItemTaxRate(item)
-		let netAmount = 0
-		let taxAmount = 0
-
-		if (taxInclusive.value && totalTaxRate > 0) {
-			// Tax-inclusive: Work backwards from gross to extract net and tax
-			const grossAmount = roundCurrency(baseAmount - discountAmount)
-			netAmount = roundCurrency(grossAmount / (1 + totalTaxRate / 100))
-			taxAmount = roundCurrency(grossAmount - netAmount)
-		} else {
-			// Tax-exclusive: Calculate tax on top of net amount
-			netAmount = roundCurrency(baseAmount - discountAmount)
-			taxAmount = roundCurrency((netAmount * totalTaxRate) / 100)
-		}
+		const taxRate = getItemTaxRate(item)
+		const grossAmount = roundCurrency(baseAmount - discountAmount)
+		const netAmount = roundCurrency(grossAmount / (1 + taxRate / 100))
+		const taxAmount = roundCurrency(grossAmount - netAmount)
 
 		// Update item fields with rounded values
 		item.tax_amount = taxAmount
@@ -626,21 +591,14 @@ export function useInvoice() {
 	}
 
 	/**
-	 * Compute the rate to send to ERPNext based on tax mode.
-	 * - Tax-inclusive: gross rate (price - discount, before tax extraction)
-	 * - Tax-exclusive: net rate (amount / qty, after discount)
+	 * Compute the rate to send to ERPNext: the gross rate (price minus per-unit
+	 * discount). ERPNext extracts the tax itself since the taxes are inclusive.
 	 */
 	function computeBackendRate(item) {
 		const qty = item.quantity || item.qty || 1
 		const priceListRate = item.price_list_rate || item.rate || 0
 		const discountAmount = item.discount_amount || 0
-
-		if (taxInclusive.value) {
-			// Gross rate: price minus per-unit discount
-			return roundCurrency(priceListRate - discountAmount / qty)
-		}
-		// Net rate: total amount divided by quantity
-		return qty > 0 ? roundCurrency((item.amount || 0) / qty) : item.rate || 0
+		return roundCurrency(priceListRate - discountAmount / qty)
 	}
 
 	/**
@@ -1133,32 +1091,14 @@ export function useInvoice() {
 		}
 	}
 
-	async function loadTaxRules(profileName, posSettings = null) {
+	async function loadTaxRules(profileName) {
 		taxRatesByGroup.value = await loadTaxRatesByGroup(profileName)
-
-		// Load tax inclusive setting from POS Settings if provided
-		if (posSettings && posSettings.tax_inclusive !== undefined) {
-			taxInclusive.value = posSettings.tax_inclusive || false
-		}
 
 		invoiceItems.value.forEach((item) => recalculateItem(item))
 
 		rebuildIncrementalCache()
 
 		return taxRatesByGroup.value
-	}
-
-	function setTaxInclusive(value) {
-		/**
-		 * Set tax inclusive mode and recalculate all items
-		 */
-		taxInclusive.value = value
-
-		// Recalculate all items with new tax inclusive setting
-		invoiceItems.value.forEach((item) => recalculateItem(item))
-
-		// Rebuild cache after bulk operation
-		rebuildIncrementalCache()
 	}
 
 	return {
@@ -1172,7 +1112,6 @@ export function useInvoice() {
 		additionalDiscount,
 		couponCode,
 		taxRatesByGroup,
-		taxInclusive,
 		isSubmitting,
 
 		// Computed
@@ -1203,7 +1142,6 @@ export function useInvoice() {
 		clearCart,
 		setDefaultCustomer,
 		loadTaxRules,
-		setTaxInclusive,
 		recalculateItem,
 		rebuildIncrementalCache,
 		formatItemsForSubmission,

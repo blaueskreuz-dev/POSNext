@@ -2344,7 +2344,8 @@ def prepare_return_invoice(invoice_name, pos_opening_shift=None):
     # Check if taxes are inclusive by inspecting the tax rows copied from the original
     # invoice (immutable after submission, unlike POS Settings which can change later).
     # Only consider percentage-based taxes (On Net Total, etc.) — Actual charge types
-    # are never inclusive (same logic as sales_invoice_hooks.apply_tax_inclusive).
+    # are never inclusive. New POS invoices are always inclusive (brocki_tax), but
+    # invoices booked before that may not be, so this still reads the original.
     applicable_taxes = [
         tax for tax in return_dict.get("taxes", [])
         if tax.get("charge_type") != "Actual"

@@ -57,17 +57,22 @@ def apply_item_tax_rates(doc):
 	"""Book each item of a POS Sales Invoice with the VAT rate of its Item Group.
 
 	The tax rows still come from the POS Profile's tax template; it only has to
-	provide the VAT account. Every item gets an item_tax_rate that overrides the
+	provide the VAT account. The VAT is always booked as included in the price.
+	Every item gets an item_tax_rate that overrides the
 	template rate for that account, so the booked VAT matches the cart.
 	Returns keep the rates copied from their original invoice.
 	"""
 	if not doc.pos_profile or doc.get("is_return"):
 		return
 
-	# The VAT account(s) from the profile's tax template
-	vat_accounts = [tax.account_head for tax in doc.taxes if tax.charge_type == "On Net Total"]
-	if not vat_accounts:
+	# The VAT row(s) from the profile's tax template. Brocki prices always include VAT.
+	vat_rows = [tax for tax in doc.taxes if tax.charge_type == "On Net Total"]
+	if not vat_rows:
 		return
+
+	for tax in vat_rows:
+		tax.included_in_print_rate = 1
+	vat_accounts = [tax.account_head for tax in vat_rows]
 
 	# Rate per Item Group of the items on this invoice
 	item_groups = {item.item_group for item in doc.items if item.item_group}

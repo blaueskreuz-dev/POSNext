@@ -16,64 +16,15 @@ from pos_next.api.brocki_tax import apply_item_tax_rates
 def validate(doc, method=None):
 	"""
 	Validate hook for Sales Invoice.
-	Apply tax inclusive settings based on POS Profile configuration.
+	Book the Brocki VAT (always tax-inclusive) per item.
 	Auto-assign loyalty program to customer if enabled.
 
 	Args:
 		doc: Sales Invoice document
 		method: Hook method name (unused)
 	"""
-	apply_tax_inclusive(doc)
-	# After apply_tax_inclusive, so the recalculation sees the inclusive flags
 	apply_item_tax_rates(doc)
 	auto_assign_loyalty_program_on_invoice(doc)
-
-
-def apply_tax_inclusive(doc):
-	"""
-	Mark taxes as inclusive based on POS Profile setting.
-
-	This function reads the tax_inclusive setting from POS Settings
-	and applies it to all taxes in the invoice (except Actual charge type).
-
-	Args:
-		doc: Sales Invoice document
-	"""
-	if not doc.pos_profile:
-		return
-
-	try:
-		# Get POS Settings for this profile
-		pos_settings = frappe.db.get_value(
-			"POS Settings",
-			{"pos_profile": doc.pos_profile},
-			["tax_inclusive"],
-			as_dict=True
-		)
-		tax_inclusive = pos_settings.get("tax_inclusive", 0) if pos_settings else 0
-	except Exception:
-		tax_inclusive = 0
-
-	has_changes = False
-	for tax in doc.get("taxes", []):
-		# Skip Actual charge type - these can't be inclusive
-		if tax.charge_type == "Actual":
-			if tax.included_in_print_rate:
-				tax.included_in_print_rate = 0
-				has_changes = True
-			continue
-
-		# Apply tax inclusive setting
-		if tax_inclusive and not tax.included_in_print_rate:
-			tax.included_in_print_rate = 1
-			has_changes = True
-		elif not tax_inclusive and tax.included_in_print_rate:
-			tax.included_in_print_rate = 0
-			has_changes = True
-
-	# Recalculate if we made changes
-	if has_changes:
-		doc.calculate_taxes_and_totals()
 
 
 def auto_assign_loyalty_program_on_invoice(doc):
