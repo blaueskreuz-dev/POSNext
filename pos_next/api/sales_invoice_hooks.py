@@ -10,6 +10,8 @@ import frappe
 from frappe import _
 from frappe.utils import cint
 
+from pos_next.api.brocki_tax import apply_item_tax_rates
+
 
 def validate(doc, method=None):
 	"""
@@ -22,6 +24,8 @@ def validate(doc, method=None):
 		method: Hook method name (unused)
 	"""
 	apply_tax_inclusive(doc)
+	# After apply_tax_inclusive, so the recalculation sees the inclusive flags
+	apply_item_tax_rates(doc)
 	auto_assign_loyalty_program_on_invoice(doc)
 
 
