@@ -135,11 +135,46 @@
 							@backspace="searchTerm = searchTerm.slice(0, -1)"
 							@clear="searchTerm = ''"
 						/>
+
+						<!-- Exact date / time search (receipts without a usable number) -->
+						<div class="flex gap-2">
+							<button
+								type="button"
+								:class="[
+									'flex-1 min-w-0 h-16 px-4 rounded-xl border flex items-center gap-3 text-start transition-colors duration-75 touch-manipulation',
+									hasDateTimeFilter
+										? 'border-primary bg-primary/5 text-primary'
+										: 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-200 active:bg-gray-100 dark:active:bg-gray-800',
+								]"
+								@click="showDateTimeDialog = true"
+							>
+								<FeatherIcon name="calendar" class="w-6 h-6 shrink-0" />
+								<span class="truncate text-lg font-semibold tabular-nums">
+									{{ dateTimeLabel }}
+								</span>
+							</button>
+							<button
+								v-if="hasDateTimeFilter"
+								type="button"
+								class="w-16 h-16 shrink-0 rounded-xl bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 flex items-center justify-center active:bg-gray-300 dark:active:bg-gray-600 transition-colors duration-75 touch-manipulation"
+								:aria-label="__('Clear')"
+								@click="applyDateTime({ date: null, time: null })"
+							>
+								<FeatherIcon name="x" class="w-6 h-6" />
+							</button>
+						</div>
 					</div>
 				</div>
 			</div>
 		</template>
 	</Dialog>
+
+	<InvoiceDateTimeDialog
+		v-model="showDateTimeDialog"
+		:date="dateFilter"
+		:time="timeFilter"
+		@apply="applyDateTime"
+	/>
 
 	<!-- Return Invoice Dialog -->
 	<ReturnInvoiceDialog
@@ -162,6 +197,7 @@ import {
 import { formatPostingDateTime } from "@/utils/dateTime"
 import { Dialog, FeatherIcon, call } from "frappe-ui"
 import { computed, onBeforeUnmount, ref, watch } from "vue"
+import InvoiceDateTimeDialog from "./InvoiceDateTimeDialog.vue"
 import ReturnInvoiceDialog from "./ReturnInvoiceDialog.vue"
 
 const { showError } = useToast()
@@ -199,6 +235,26 @@ const show = computed({
 
 const invoices = ref([])
 const searchTerm = ref("")
+
+const showDateTimeDialog = ref(false)
+const dateFilter = ref(null)
+const timeFilter = ref(null)
+
+const hasDateTimeFilter = computed(() =>
+	Boolean(dateFilter.value || timeFilter.value),
+)
+
+const dateTimeLabel = computed(() => {
+	if (!hasDateTimeFilter.value) return __("Date & Time")
+	const date = dateFilter.value?.split("-").reverse().join(".")
+	return [date, timeFilter.value].filter(Boolean).join(" · ")
+})
+
+function applyDateTime({ date, time }) {
+	dateFilter.value = date
+	timeFilter.value = time
+}
+
 const page = ref(0)
 const pageSize = 20
 const hasMore = ref(true)
@@ -225,14 +281,24 @@ async function fetchInvoices({ append = false } = {}) {
 	loading.value = true
 	const term = searchTerm.value.trim()
 
+	const filters = [
+		["is_pos", "=", 1],
+		["pos_profile", "=", props.posProfile],
+	]
+	if (term) filters.push(["name", "like", `%${term}%`])
+	if (dateFilter.value) filters.push(["posting_date", "=", dateFilter.value])
+	if (timeFilter.value) {
+		// The receipt prints HH:mm, so match every second of that minute
+		filters.push(
+			["posting_time", ">=", `${timeFilter.value}:00`],
+			["posting_time", "<=", `${timeFilter.value}:59.999999`],
+		)
+	}
+
 	try {
 		const data = await call("frappe.client.get_list", {
 			doctype: "Sales Invoice",
-			filters: {
-				is_pos: 1,
-				pos_profile: props.posProfile,
-				...(term && { name: ["like", `%${term}%`] }),
-			},
+			filters,
 			fields: [
 				"name",
 				"customer",
@@ -278,6 +344,8 @@ watch(searchTerm, () => {
 	clearTimeout(searchTimeout)
 	searchTimeout = setTimeout(loadInvoices, SEARCH_DEBOUNCE_MS)
 })
+
+watch([dateFilter, timeFilter], loadInvoices)
 
 onBeforeUnmount(() => clearTimeout(searchTimeout))
 
