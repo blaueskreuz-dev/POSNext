@@ -96,3 +96,11 @@ A rate of `None` means the item group has no value set.
 ### Status
 
 The POS is being switched over to this rate. Until that is done, the cart (`calculateTotalTaxRate()` in `POS/src/composables/useInvoice.js`) still uses the POS Profile's Sales Taxes and Charges Template and adds every "On Net Total" row to every item. Whether ERPNext's booking already applies the group rate on the brocki bench is still being checked.
+
+## Paying in euros (Bar EUR)
+
+- Everything is calculated in francs. Totals, payments, change and the invoice in ERPNext are all CHF. Euros are only for display: when Bar EUR is selected, the amounts are shown in euros and the keypad takes euros. Each euro payment is converted to CHF once, as soon as it is added.
+- Change is always given in francs, even if the customer paid with euros.
+- The payment method name must contain `EUR` as a separate word (e.g. `Bar EUR`). That is how the POS recognises it.
+- One rate per POS shift. The rate is fetched once when a shift is open and used for the whole shift. The next shift gets a new rate. The rate is shown on the Bar EUR button.
+- Source of the rate: ERPNext's `erpnext.setup.utils.get_exchange_rate`. If there is a manual Currency Exchange record in ERPNext, that one is used. Otherwise ERPNext gets the ECB reference rate from the free [Frankfurter](https://frankfurter.dev) API.

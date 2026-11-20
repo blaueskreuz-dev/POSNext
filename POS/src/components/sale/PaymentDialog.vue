@@ -298,7 +298,11 @@
 								class="flex items-center justify-between gap-2 ps-3 pe-1 h-11 text-sm"
 							>
 								<span class="flex-1 min-w-0 truncate text-start text-gray-900">{{ __(payment.mode_of_payment) }}</span>
-								<span class="font-semibold text-gray-900 text-end">{{ formatCurrency(payment.amount) }}</span>
+								<span v-if="payment.foreign_amount != null" class="flex flex-col items-end leading-tight">
+									<span class="font-semibold text-gray-900">{{ formatCurrencyUtil(payment.foreign_amount, 'EUR') }}</span>
+									<span class="text-xs text-gray-500">{{ formatCurrency(payment.amount) }}</span>
+								</span>
+								<span v-else class="font-semibold text-gray-900 text-end">{{ formatCurrency(payment.amount) }}</span>
 								<button
 									@click="removeLoggedPayment(index)"
 									class="w-9 h-9 flex items-center justify-center rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
@@ -391,22 +395,27 @@
 							<!-- Subtotal -->
 							<div class="flex items-center justify-between text-sm">
 								<span class="text-gray-600 text-start">{{ __('Subtotal') }}</span>
-								<span class="font-medium text-gray-900 text-end">{{ formatCurrency(subtotal) }}</span>
+								<span class="font-medium text-gray-900 text-end">{{ formatDisplay(subtotal) }}</span>
 							</div>
 							<!-- Tax -->
 							<div v-if="taxAmount > 0" class="flex items-center justify-between text-sm">
 								<span class="text-gray-600 text-start">{{ __('Tax') }}</span>
-								<span class="font-medium text-gray-900 text-end">{{ formatCurrency(taxAmount) }}</span>
+								<span class="font-medium text-gray-900 text-end">{{ formatDisplay(taxAmount) }}</span>
 							</div>
 							<!-- Discount (shows the calculated additional discount amount) -->
 							<div v-if="discountAmount > 0" class="flex items-center justify-between text-sm">
 								<span class="text-gray-600 text-start">{{ __('Discount') }}</span>
-								<span class="font-medium text-red-600 text-end">-{{ formatCurrency(discountAmount) }}</span>
+								<span class="font-medium text-red-600 text-end">-{{ formatDisplay(discountAmount) }}</span>
 							</div>
 							<!-- Grand Total -->
 							<div class="flex items-center justify-between pt-2 mt-1 border-t border-gray-300">
 								<span :class="['font-bold text-gray-900 text-start', isCompactMode ? 'text-sm' : 'text-base']">{{ __('Grand Total') }}</span>
-								<span :class="['font-bold text-gray-900 text-end', dynamicTextSize.grandTotal]">{{ formatCurrency(grandTotal) }}</span>
+								<span :class="['font-bold text-gray-900 text-end', dynamicTextSize.grandTotal]">{{ formatDisplay(grandTotal) }}</span>
+							</div>
+							<!-- EUR mode: show the CHF total and the rate used -->
+							<div v-if="isEurMode" class="flex items-center justify-between text-xs text-gray-500">
+								<span class="text-start">{{ formatRate(eurRate) }}</span>
+								<span class="text-end">{{ formatCurrency(grandTotal) }}</span>
 							</div>
 						</div>
 
@@ -416,18 +425,19 @@
 								<!-- Paid (Left Half) -->
 								<div :class="['bg-blue-50 text-center', isCompactMode ? 'p-2' : 'p-3']">
 									<div class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">{{ __('Paid') }}</div>
-									<div :class="['font-bold text-primary', dynamicTextSize.amount]">{{ formatCurrency(totalPaid) }}</div>
+									<div :class="['font-bold text-primary', dynamicTextSize.amount]">{{ formatDisplay(totalPaid) }}</div>
 								</div>
 								<!-- Remaining / Change (Right Half) -->
 								<div v-if="remainingAmount > 0 && !applyWriteOff" :class="['bg-orange-50 text-center', isCompactMode ? 'p-2' : 'p-3']">
 									<div class="text-xs font-medium text-orange-600 uppercase tracking-wide mb-1">{{ __('Remaining') }}</div>
-									<div :class="['font-bold text-orange-600', dynamicTextSize.amount]">{{ formatCurrency(remainingAmount) }}</div>
+									<div :class="['font-bold text-orange-600', dynamicTextSize.amount]">{{ formatDisplay(remainingAmount) }}</div>
 								</div>
 								<!-- Write-off Applied -->
 								<div v-else-if="applyWriteOff && canWriteOff" :class="['bg-purple-50 text-center', isCompactMode ? 'p-2' : 'p-3']">
 									<div class="text-xs font-medium text-purple-600 uppercase tracking-wide mb-1">{{ __('Write Off') }}</div>
 									<div :class="['font-bold text-purple-600', dynamicTextSize.amount]">{{ formatCurrency(writeOffAmount) }}</div>
 								</div>
+								<!-- Change is ALWAYS in company currency (CHF), even after EUR payments -->
 								<div v-else-if="changeAmount > 0 && allowsOverpayment" :class="['bg-green-50 text-center', isCompactMode ? 'p-2' : 'p-3']">
 									<div class="text-xs font-medium text-green-600 uppercase tracking-wide mb-1">{{ __('Change Due') }}</div>
 									<div :class="['font-bold text-green-600', dynamicTextSize.amount]">{{ formatCurrency(changeAmount) }}</div>
@@ -514,13 +524,17 @@
 								@pointerup="onPaymentMethodUp(method)"
 								@pointerleave="onPaymentMethodCancel"
 								@pointercancel="onPaymentMethodCancel"
-								:disabled="isWalletPaymentMethod(method.mode_of_payment) && availableWalletBalance <= 0 && getMethodTotal(method.mode_of_payment) === 0"
+								:disabled="(isWalletPaymentMethod(method.mode_of_payment) && availableWalletBalance <= 0 && getMethodTotal(method.mode_of_payment) === 0) || (isEurMethod(method) && !(eurRate > 0))"
 								:class="[
 									paymentTileClass,
 									paymentTileStateClass(lastSelectedMethod?.mode_of_payment === method.mode_of_payment)
 								]"
 							>
 								<span class="text-sm sm:text-base font-semibold text-center leading-tight line-clamp-2 break-words">{{ __(method.mode_of_payment) }}</span>
+								<!-- EUR rate used for this shift -->
+								<span v-if="isEurMethod(method)" class="text-xs tabular-nums opacity-80">
+									{{ eurRate > 0 ? formatRate(eurRate) : __('No exchange rate') }}
+								</span>
 								<!-- Wallet Balance -->
 								<span v-if="isWalletPaymentMethod(method.mode_of_payment) && walletInfo.wallet_enabled" class="text-xs opacity-90">
 									{{ formatCurrency(availableWalletBalance) }}
@@ -584,7 +598,7 @@
 										'absolute start-2 top-1/2 -translate-y-1/2',
 										isSmallMobile ? 'text-[10px]' : 'text-xs',
 										isExactAmountModeActive && !isCashPaymentMethod(lastSelectedMethod) ? 'text-gray-300' : 'text-gray-400'
-									]">{{ currencySymbol }}</span>
+									]">{{ inputCurrencySymbol }}</span>
 									<input
 										v-model="mobileCustomAmount"
 										type="number"
@@ -631,7 +645,7 @@
 								class="grid grid-cols-2" :class="isSmallMobile ? 'gap-1' : 'gap-1.5'">
 								<!-- Pay Full Amount Button -->
 								<button
-									@click="addCustomPayment(lastSelectedMethod, remainingAmount)"
+									@click="addCustomPayment(lastSelectedMethod, remainingInInputCurrency)"
 									:class="[
 										'font-bold rounded-lg bg-green-500 text-white active:bg-green-600 flex items-center justify-center',
 										mobileButtonSize.height, mobileButtonSize.text, mobileButtonSize.gap
@@ -640,7 +654,7 @@
 									<svg :class="mobileButtonSize.icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
 									</svg>
-									<span class="truncate">{{ formatCurrency(remainingAmount) }}</span>
+									<span class="truncate">{{ formatDisplay(remainingAmount) }}</span>
 								</button>
 								<!-- Pay on Account Button -->
 								<button
@@ -668,7 +682,7 @@
 							<!-- Single Pay button (when no credit sale option) -->
 							<button
 								v-else-if="lastSelectedMethod && remainingAmount > 0"
-								@click="addCustomPayment(lastSelectedMethod, remainingAmount)"
+								@click="addCustomPayment(lastSelectedMethod, remainingInInputCurrency)"
 								:disabled="isSubmitting"
 								:class="[
 									'w-full font-bold rounded-lg flex items-center justify-center',
@@ -681,7 +695,7 @@
 								<svg :class="mobileButtonSize.icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
 								</svg>
-								<span>{{ __('Pay') }} {{ formatCurrency(remainingAmount) }}</span>
+								<span>{{ __('Pay') }} {{ formatDisplay(remainingAmount) }}</span>
 							</button>
 
 							<!-- Complete Payment Button -->
@@ -714,7 +728,7 @@
 					<div class="hidden lg:block select-none">
 						<!-- Amount Display -->
 						<div dir="ltr" :class="['rounded-xl bg-gray-100 px-4 text-end tabular-nums', isCompactMode ? 'py-2 mb-2' : 'py-3 mb-3']">
-							<span class="text-lg font-medium text-gray-500 me-2">{{ currencySymbol }}</span>
+							<span class="text-lg font-medium text-gray-500 me-2">{{ inputCurrencySymbol }}</span>
 							<span
 								:class="[
 									'font-bold',
@@ -824,6 +838,7 @@
 
 <script setup>
 import { usePOSSettingsStore } from "@/stores/posSettings"
+import { usePOSShiftStore } from "@/stores/posShift"
 import {
 	DEFAULT_CURRENCY,
 	formatCurrency as formatCurrencyUtil,
@@ -838,6 +853,7 @@ import { useToast } from "@/composables/useToast"
 import { useLongPress } from "@/composables/useLongPress"
 import { usePaymentNumpad } from "@/composables/usePaymentNumpad"
 import { useResponsivePayment } from "@/composables/useResponsivePayment"
+import { useExchangeRate, getPaymentMethodCurrency } from "@/composables/useExchangeRate"
 
 const log = logger.create("PaymentDialog")
 const settingsStore = usePOSSettingsStore()
@@ -1485,6 +1501,60 @@ async function loadPaymentMethods() {
 // Currency symbol for display
 const currencySymbol = computed(() => getCurrencySymbol(props.currency))
 
+// ===========================================
+// Foreign cash (Bar EUR) - see README "Paying in euros (Bar EUR)"
+// Everything is stored and submitted in company currency (CHF). EUR only
+// changes how amounts are entered and displayed while a EUR method is
+// selected. Change is always given (and shown) in CHF.
+// ===========================================
+// One rate per shift: fetched once when the shift is known, cached in the browser
+const shiftStore = usePOSShiftStore()
+const { rate: eurRate, ensureShiftRate } = useExchangeRate("EUR")
+watch(
+	() => shiftStore.currentShift?.name,
+	(shiftName) => ensureShiftRate(shiftName, props.currency),
+	{ immediate: true },
+)
+
+function isEurMethod(method) {
+	return !!method && getPaymentMethodCurrency(method.mode_of_payment) === "EUR"
+}
+
+// EUR mode: a EUR method is selected and we have a rate to convert with
+const isEurMode = computed(() => isEurMethod(lastSelectedMethod.value) && eurRate.value > 0)
+const inputCurrency = computed(() => (isEurMode.value ? "EUR" : props.currency))
+const inputCurrencySymbol = computed(() => getCurrencySymbol(inputCurrency.value))
+
+// Format a company-currency amount in the currently selected input currency
+function formatDisplay(amount) {
+	const value = Number.parseFloat(amount || 0)
+	return isEurMode.value
+		? formatCurrencyUtil(value / eurRate.value, "EUR")
+		: formatCurrency(value)
+}
+
+function chfToEur(chf) {
+	return roundCurrency(chf / eurRate.value)
+}
+
+// Convert entered EUR to CHF. Paying exactly the displayed EUR remaining
+// settles the invoice exactly, so no 0.01 CHF leftovers from conversion.
+function eurToChf(eur) {
+	if (remainingAmount.value > 0 && Math.abs(eur - chfToEur(remainingAmount.value)) < 0.005) {
+		return remainingAmount.value
+	}
+	return roundCurrency(eur * eurRate.value)
+}
+
+// Remaining amount expressed in the selected input currency
+const remainingInInputCurrency = computed(() =>
+	isEurMode.value ? chfToEur(remainingAmount.value) : remainingAmount.value,
+)
+
+function formatRate(rate) {
+	return `1 € = ${Number(rate).toFixed(4)} ${props.currency}`
+}
+
 const totalPaid = computed(() => {
 	const sum = paymentEntries.value.reduce(
 		(sum, entry) => sum + (entry.amount || 0),
@@ -1799,6 +1869,8 @@ watch(show, (newVal) => {
 		selectedSalesPersons.value = []
 		salesPersonSearch.value = ""
 		applyWriteOff.value = false // Reset write-off state
+		// Retry the shift's EUR rate if it couldn't be fetched yet (no-op once cached)
+		if (!props.isOffline) ensureShiftRate(shiftStore.currentShift?.name, props.currency)
 		// Set default delivery date to today for Sales Orders
 		deliveryDate.value = isSalesOrder.value ? today : ""
 
@@ -1901,29 +1973,40 @@ function switchToNextPaymentMethod(partialAmount) {
 
 // Consolidate payment entries: if a row with the same mode already exists,
 // add to it instead of creating a duplicate row.
-function _upsertPaymentEntry(method, amt) {
+// amt is always company currency (CHF). foreignAmount is the EUR actually
+// handed over, kept for display only (the invoice is booked in CHF).
+function _upsertPaymentEntry(method, amt, foreignAmount = null) {
 	const existing = paymentEntries.value.find(
 		(e) => e.mode_of_payment === method.mode_of_payment && !e.is_customer_credit,
 	)
 	if (existing) {
 		existing.amount = roundCurrency((existing.amount || 0) + amt)
+		if (foreignAmount != null) {
+			existing.foreign_amount = roundCurrency((existing.foreign_amount || 0) + foreignAmount)
+		}
 	} else {
 		paymentEntries.value.push({
 			mode_of_payment: method.mode_of_payment,
 			amount: roundCurrency(amt),
 			type: method.type || __("Cash"),
 			is_wallet_payment: isWalletPaymentMethod(method.mode_of_payment),
+			...(foreignAmount != null && {
+				foreign_currency: "EUR",
+				foreign_amount: roundCurrency(foreignAmount),
+				exchange_rate: eurRate.value,
+			}),
 		})
 	}
-	_logPayment(method.mode_of_payment, amt, false)
+	_logPayment(method.mode_of_payment, amt, false, foreignAmount)
 }
 
-function _logPayment(modeOfPayment, amt, isCustomerCredit) {
+function _logPayment(modeOfPayment, amt, isCustomerCredit, foreignAmount = null) {
 	paymentLog.value.push({
 		id: ++paymentLogId,
 		mode_of_payment: modeOfPayment,
 		amount: roundCurrency(amt),
 		is_customer_credit: isCustomerCredit,
+		foreign_amount: foreignAmount != null ? roundCurrency(foreignAmount) : null,
 	})
 }
 
@@ -1939,6 +2022,9 @@ function removeLoggedPayment(index) {
 	if (entryIndex === -1) return
 	const entry = paymentEntries.value[entryIndex]
 	entry.amount = roundCurrency((entry.amount || 0) - payment.amount)
+	if (payment.foreign_amount != null) {
+		entry.foreign_amount = roundCurrency((entry.foreign_amount || 0) - payment.foreign_amount)
+	}
 	if (entry.amount <= 0) {
 		paymentEntries.value.splice(entryIndex, 1)
 	}
@@ -2006,7 +2092,15 @@ function quickAddPayment(method) {
 		amt = maxAllowed
 	}
 
-	_upsertPaymentEntry(method, roundCurrency(amt))
+	if (isEurMethod(method)) {
+		if (!(eurRate.value > 0)) {
+			showWarning(__("No EUR exchange rate available"))
+			return
+		}
+		_upsertPaymentEntry(method, roundCurrency(amt), chfToEur(amt))
+	} else {
+		_upsertPaymentEntry(method, roundCurrency(amt))
+	}
 	log.debug("[PaymentDialog] Long press payment added:", method.mode_of_payment)
 
 	// If this was a partial wallet payment, switch to another payment method
@@ -2041,7 +2135,8 @@ function onPaymentMethodCancel() {
 	handlePointerCancel()
 }
 
-// Add custom amount for a method
+// Add custom amount for a method. `amount` is in the method's currency
+// (EUR for Bar EUR, otherwise company currency).
 function addCustomPayment(method, amount) {
 	log.debug("[PaymentDialog] Add custom payment:", {
 		method: method.mode_of_payment,
@@ -2051,6 +2146,17 @@ function addCustomPayment(method, amount) {
 
 	let amt = Number.parseFloat(amount)
 	if (!amt || amt <= 0) return
+
+	// EUR cash: convert the entered euros to CHF, keep the euros for display
+	let foreignAmount = null
+	if (isEurMethod(method)) {
+		if (!(eurRate.value > 0)) {
+			showWarning(__("No EUR exchange rate available"))
+			return
+		}
+		foreignAmount = amt
+		amt = eurToChf(amt)
+	}
 
 	let isPartialWalletPayment = false
 
@@ -2112,7 +2218,7 @@ function addCustomPayment(method, amount) {
 		}
 	}
 
-	_upsertPaymentEntry(method, amt)
+	_upsertPaymentEntry(method, amt, foreignAmount)
 
 	log.debug("[PaymentDialog] Payment added, new entries:", paymentEntries.value)
 	customAmount.value = ""
