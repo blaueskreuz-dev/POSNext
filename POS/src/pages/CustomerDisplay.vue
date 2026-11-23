@@ -1,9 +1,14 @@
 <template>
 	<div
 		v-if="state.phase === 'idle'"
-		class="h-screen flex items-center justify-center bg-primary text-white text-[8rem] font-bold"
+		class="h-screen flex items-center justify-center bg-white select-none"
 	>
-		{{ __("Welcome") }}
+		<img
+			:src="blauesKreuzLogo"
+			alt="Blaues Kreuz Schweiz"
+			class="w-[65vw] max-h-[45vh] object-contain"
+			draggable="false"
+		/>
 	</div>
 
 	<div v-else class="h-screen flex flex-col bg-gray-100 text-[2.5rem]">
@@ -48,6 +53,7 @@
 
 <script setup>
 import { nextTick, ref, watch } from "vue"
+import blauesKreuzLogo from "@/assets/blaues-kreuz-logo.svg"
 import { useCustomerDisplaySubscriber } from "@/composables/useCustomerDisplay"
 
 const GRID_COLS = "grid-cols-[minmax(0,1fr)_8rem_14rem_10rem_14rem]"
