@@ -14,11 +14,13 @@ export default {
 					DEFAULT: "#005ca9",
 					hover: "#004e8f",
 					active: "#004075",
+					disabled: "#b3cbe2",
 				},
 				secondary: {
 					DEFAULT: "#8b9c2b",
 					hover: "#768525",
 					active: "#616d1e",
+					disabled: "#d3d9ab",
 				},
 			},
 		},

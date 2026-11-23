@@ -137,7 +137,7 @@
 			<button
 				type="button"
 				:disabled="cartEmpty"
-				class="w-full h-24 flex items-center justify-center p-2 rounded-xl bg-secondary hover:bg-secondary-hover active:bg-secondary-active disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed shadow-lg text-white touch-manipulation transition-colors duration-75 select-none"
+				class="w-full h-24 flex items-center justify-center p-2 rounded-xl bg-secondary hover:bg-secondary-hover active:bg-secondary-active disabled:bg-secondary-disabled disabled:shadow-none disabled:cursor-not-allowed shadow-lg text-white touch-manipulation transition-colors duration-75 select-none"
 				:aria-label="__('Proceed to payment')"
 				@click="emit('checkout')"
 			>
@@ -178,7 +178,7 @@
 	})
 
 	const buttonClass =
-		"h-20 flex items-center justify-center p-2 rounded-xl bg-primary hover:bg-primary-hover active:bg-primary-active disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed shadow-md text-white touch-manipulation transition-colors duration-75 select-none"
+		"h-20 flex items-center justify-center p-2 rounded-xl bg-primary hover:bg-primary-hover active:bg-primary-active disabled:bg-primary-disabled disabled:shadow-none disabled:cursor-not-allowed shadow-md text-white touch-manipulation transition-colors duration-75 select-none"
 
 	const { formatQuantity } = useFormatters()
 
