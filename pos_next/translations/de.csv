@@ -1444,3 +1444,6 @@
 "Invalid","Ungültig",""
 "DD.MM.YYYY","TT.MM.JJJJ",""
 "HH:MM","HH:MM",""
+"Unable to load shift data. Please check your connection and try again.","Schichtdaten konnten nicht geladen werden. Bitte Verbindung prüfen und erneut versuchen.",""
+"Failed to close shift.","Schicht konnte nicht abgeschlossen werden.",""
+"{0}d {1}h","{0}T {1}h",""

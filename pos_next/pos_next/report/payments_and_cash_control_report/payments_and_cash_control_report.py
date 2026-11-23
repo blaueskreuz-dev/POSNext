@@ -157,7 +157,8 @@ def get_data(filters):
 			pr.opening_amount,
 			pr.expected_amount,
 			pr.closing_amount,
-			pr.difference
+			pr.difference,
+			pcs.cash_counted
 		FROM
 			`tabPOS Closing Shift` pcs
 		INNER JOIN
@@ -208,6 +209,7 @@ def get_data(filters):
 				"total_expected": 0,
 				"total_closing": 0,
 				"total_difference": 0,
+				"_cash_counted": r.cash_counted,
 			}
 
 		row = shifts[r.shift]
@@ -215,7 +217,7 @@ def get_data(filters):
 		opening = flt(r.opening_amount, 2)
 		expected = flt(r.expected_amount, 2)
 		closing = flt(r.closing_amount, 2)
-		diff = flt(closing - expected, 2)
+		diff = flt(closing - expected, 2) if r.cash_counted else 0
 		row[f"{safe}_opening"] = opening
 		row[f"{safe}_expected"] = expected
 		row[f"{safe}_closing"] = closing
@@ -237,7 +239,9 @@ def get_data(filters):
 
 		# Determine status based on total difference
 		abs_diff = abs(row["total_difference"])
-		if abs_diff == 0:
+		if not row.pop("_cash_counted"):
+			row["status"] = "… Not Counted"
+		elif abs_diff == 0:
 			row["status"] = "✓ Balanced"
 		elif abs_diff <= 10:
 			row["status"] = "~ Minor Variance"

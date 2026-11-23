@@ -72,7 +72,27 @@ class POSClosingShift(Document):
         # get default precision for site
         precision = frappe.get_cached_value("System Settings", None, "currency_precision") or 3
         for d in self.payment_reconciliation:
-            d.difference = +flt(d.closing_amount, precision) - flt(d.expected_amount, precision)
+            if self.cash_counted:
+                d.difference = +flt(d.closing_amount, precision) - flt(d.expected_amount, precision)
+            else:
+                d.difference = 0
+
+    def before_update_after_submit(self):
+        """Record the later cash count on an already submitted shift."""
+        before = self.get_doc_before_save()
+        old_amounts = {
+            d.name: flt(d.closing_amount) for d in (before.payment_reconciliation if before else [])
+        }
+        changed = any(
+            flt(d.closing_amount) != old_amounts.get(d.name) for d in self.payment_reconciliation
+        )
+        if not changed:
+            return
+
+        self.cash_counted = 1
+        self.counted_by = frappe.session.user
+        self.counted_on = frappe.utils.now_datetime()
+        self.update_payment_reconciliation()
 
     def on_submit(self):
         opening_entry = frappe.get_doc("POS Opening Shift", self.pos_opening_shift)
@@ -409,9 +429,30 @@ def get_payments_entries(pos_opening_shift):
 
 
 def _get_cash_mode_of_payment(pos_profile):
-    """Get the cash mode of payment for a POS profile."""
+    """Get the cash mode of payment for a POS profile.
+
+    Fallback chain: explicit profile setting > first profile mode of type
+    "Cash" > first profile mode. Never invent a mode the profile doesn't have,
+    otherwise change_amount ends up in a phantom "Cash" row.
+    """
     cash_mode = frappe.get_value("POS Profile", pos_profile, "posa_cash_mode_of_payment")
-    return cash_mode or "Cash"
+    if cash_mode:
+        return cash_mode
+
+    mop = frappe.qb.DocType("Mode of Payment")
+    ppm = frappe.qb.DocType("POS Payment Method")
+    rows = (
+        frappe.qb.from_(ppm)
+        .inner_join(mop).on(mop.name == ppm.mode_of_payment)
+        .select(ppm.mode_of_payment, mop.type)
+        .where((ppm.parent == pos_profile) & (ppm.parenttype == "POS Profile"))
+        .orderby(ppm.idx)
+    ).run(as_dict=True)
+
+    for row in rows:
+        if row.type == "Cash":
+            return row.mode_of_payment
+    return rows[0].mode_of_payment if rows else "Cash"
 
 
 def _aggregate_payment(payments, mode_of_payment, amount, opening_amount=0):
