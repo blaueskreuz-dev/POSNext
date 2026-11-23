@@ -339,41 +339,28 @@
 			<!-- No Shift Placeholder -->
 			<div
 				v-else
-				class="flex-1 flex items-center justify-center bg-gray-50"
+				class="flex-1 flex items-center justify-center bg-gray-50 dark:bg-gray-950 p-4"
 				style="max-height: calc(100vh - var(--header-height, 60px))"
 			>
-				<div class="text-center">
-					<div
-						class="mx-auto flex items-center justify-center h-24 w-24 rounded-full bg-blue-100"
-					>
-						<svg
-							class="h-12 w-12 text-blue-600"
-							fill="none"
-							stroke="currentColor"
-							viewBox="0 0 24 24"
-						>
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-							/>
-						</svg>
+				<div class="w-full max-w-md rounded-2xl bg-white dark:bg-gray-900 px-8 py-10 flex flex-col items-center text-center select-none">
+					<div class="rounded-lg bg-white px-3 py-2">
+						<img
+							:src="blauesKreuzLogo"
+							alt="Blaues Kreuz Schweiz"
+							class="h-20 w-auto"
+							draggable="false"
+						/>
 					</div>
-					<h3 class="mt-4 text-lg font-medium text-gray-900">
-						{{ __("Welcome to POS Next") }}
+					<h3 class="mt-8 text-3xl font-bold text-gray-900 dark:text-gray-100">
+						{{ __("Welcome to Brocki POS") }}
 					</h3>
-					<p class="mt-2 text-sm text-gray-500">
-						{{ __("Please open a shift to start making sales") }}
-					</p>
-					<Button
-						variant="solid"
-						theme="blue"
+					<button
+						type="button"
+						class="mt-8 h-20 w-full rounded-xl bg-primary hover:bg-primary-hover active:bg-primary-active text-white text-2xl font-bold flex items-center justify-center shadow-lg transition-colors duration-75 touch-manipulation"
 						@click="uiStore.showOpenShiftDialog = true"
-						class="mt-6"
 					>
 						{{ __("Open Shift") }}
-					</Button>
+					</button>
 				</div>
 			</div>
 
@@ -928,6 +915,7 @@ import { printInvoice, printInvoiceByName, printWithSilentFallback } from "@/uti
 import { qzConnected, connect as qzConnect, disconnect as qzDisconnect } from "@/utils/qzTray";
 
 import { Button, Dialog, createResource } from "frappe-ui";
+import blauesKreuzLogo from "@/assets/blaues-kreuz-logo.svg";
 import { call } from "@/utils/apiWrapper";
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { useToast } from "@/composables/useToast";
@@ -1256,10 +1244,8 @@ onMounted(async () => {
 	async function initPOS() {
 		const hasShift = await shiftStore.checkShift();
 
-		if (!hasShift) {
-			uiStore.showOpenShiftDialog = true;
-			return;
-		}
+		// No shift: show the welcome screen; the cashier taps "Open Shift"
+		if (!hasShift) return;
 
 		if (!shiftStore.currentProfile) return;
 
@@ -1653,11 +1639,8 @@ async function handleShiftClosed() {
 		_initializedKey = null;
 		await cleanupUserSession();
 		session.logout.submit();
-	} else {
-		setTimeout(() => {
-			uiStore.showOpenShiftDialog = true;
-		}, 500);
 	}
+	// Otherwise the welcome screen with "Open Shift" is shown
 }
 
 function handleItemSelected(item, autoAdd = false) {
