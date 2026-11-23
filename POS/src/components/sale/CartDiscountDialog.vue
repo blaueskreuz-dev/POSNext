@@ -60,7 +60,7 @@
 							<button
 								type="button"
 								:disabled="!canConfirm"
-								class="rounded-xl bg-green-600 text-white text-lg font-bold flex flex-col items-center justify-center gap-1 active:bg-green-700 disabled:bg-gray-200 disabled:text-gray-400 dark:disabled:bg-gray-800 dark:disabled:text-gray-600 transition-colors duration-75 touch-manipulation"
+								class="rounded-xl bg-secondary text-white text-lg font-bold flex flex-col items-center justify-center gap-1 hover:bg-secondary-hover active:bg-secondary-active disabled:bg-gray-200 disabled:text-gray-400 dark:disabled:bg-gray-800 dark:disabled:text-gray-600 transition-colors duration-75 touch-manipulation"
 								@click="apply(customPercentage)"
 							>
 								<FeatherIcon name="check" class="w-7 h-7" />

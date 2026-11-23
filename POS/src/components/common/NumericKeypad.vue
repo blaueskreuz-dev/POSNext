@@ -6,7 +6,7 @@
 			:key="key.value"
 			type="button"
 			:style="key.style"
-			class="rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-2xl font-semibold text-gray-900 dark:text-gray-100 active:bg-gray-200 dark:active:bg-gray-700 transition-colors duration-75 touch-manipulation"
+			class="rounded-xl bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-2xl font-semibold text-gray-900 dark:text-gray-100 active:bg-gray-200 dark:active:bg-gray-700 transition-colors duration-75 touch-manipulation"
 			@click="emit('press', key.value)"
 		>
 			{{ key.value }}
@@ -15,7 +15,7 @@
 		<button
 			type="button"
 			:style="{ gridColumn: 4, gridRow: hasConfirm ? 1 : '1 / span 2' }"
-			class="rounded-xl bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 flex items-center justify-center active:bg-gray-300 dark:active:bg-gray-600 transition-colors duration-75 touch-manipulation"
+			class="rounded-xl bg-primary text-white flex items-center justify-center hover:bg-primary-hover active:bg-primary-active transition-colors duration-75 touch-manipulation"
 			:aria-label="__('Backspace')"
 			@click="emit('backspace')"
 		>
@@ -24,7 +24,7 @@
 		<button
 			type="button"
 			:style="{ gridColumn: 4, gridRow: hasConfirm ? 2 : '3 / span 2' }"
-			class="rounded-xl bg-gray-200 dark:bg-gray-700 text-base font-semibold text-gray-700 dark:text-gray-200 active:bg-gray-300 dark:active:bg-gray-600 transition-colors duration-75 touch-manipulation"
+			class="rounded-xl bg-primary text-base font-semibold text-white hover:bg-primary-hover active:bg-primary-active transition-colors duration-75 touch-manipulation"
 			@click="emit('clear')"
 		>
 			{{ __('Clear') }}

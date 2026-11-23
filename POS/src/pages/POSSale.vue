@@ -459,7 +459,6 @@
 			<PriceKeypadDialog
 				v-model="uiStore.showPriceKeypad"
 				:item="priceKeypadItem"
-				:currency="shiftStore.profileCurrency"
 				@confirm="handlePriceEntered"
 			/>
 
