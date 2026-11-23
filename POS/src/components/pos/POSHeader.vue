@@ -4,10 +4,18 @@
 	>
 		<div class="flex py-2 sm:py-3">
 			<div class="flex-1 flex justify-between items-center gap-1 sm:gap-2 px-2 sm:px-4 md:px-6">
-				<!-- Left Side: Profile and User -->
-				<div class="flex items-baseline gap-2 min-w-0 flex-1 overflow-hidden">
-					<h1 v-if="profileName" class="text-sm sm:text-base font-bold text-gray-900 truncate">{{ profileName }}</h1>
-					<span class="text-xs sm:text-sm text-gray-500 truncate">{{ userName }}</span>
+				<!-- Left Side: Logo and Profile -->
+				<div class="flex items-center gap-3 sm:gap-4 min-w-0 flex-1 overflow-hidden">
+					<img
+						:src="blauesKreuzLogo"
+						alt="Blaues Kreuz Schweiz"
+						class="h-8 sm:h-10 w-auto flex-shrink-0"
+						draggable="false"
+					/>
+					<div class="flex items-baseline gap-2 min-w-0">
+						<h1 v-if="profileName" class="text-sm sm:text-base font-bold text-gray-900 truncate">{{ profileName }}</h1>
+						<span class="text-sm sm:text-base font-bold text-gray-900 truncate">{{ userName }}</span>
+					</div>
 				</div>
 
 				<!-- Right Side: Controls -->
@@ -190,6 +198,7 @@
 </template>
 
 <script setup>
+import blauesKreuzLogo from "@/assets/blaues-kreuz-logo.svg"
 import UserMenu from "@/components/common/UserMenu.vue"
 import { DEFAULT_LOCALE } from "@/utils/currency"
 import { ref } from "vue"
