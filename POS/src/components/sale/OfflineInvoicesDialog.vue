@@ -1,5 +1,5 @@
 <template>
-	<Dialog v-model="show" :options="{ title: __('Offline Invoices'), size: 'xl' }">
+	<Dialog disable-outside-click-to-close v-model="show" :options="{ title: __('Offline Invoices'), size: 'xl' }">
 		<template #body-content>
 			<div class="flex flex-col gap-3 sm:flex flex-col gap-4">
 				<!-- Header Info -->
@@ -122,7 +122,7 @@
 	</Dialog>
 
 	<!-- Details Dialog -->
-	<Dialog v-model="showDetails" :options="{ title: __('Invoice Details'), size: 'lg' }">
+	<Dialog disable-outside-click-to-close v-model="showDetails" :options="{ title: __('Invoice Details'), size: 'lg' }">
 		<template #body-content>
 			<div v-if="selectedInvoice" class="flex flex-col gap-3 sm:flex flex-col gap-4">
 				<div class="bg-gray-50 p-3 sm:p-4 rounded-lg">
@@ -184,7 +184,7 @@
 	</Dialog>
 
 	<!-- Delete Confirmation Dialog -->
-	<Dialog v-model="showDeleteConfirm" :options="{ title: __('Delete Offline Invoice'), size: 'md' }">
+	<Dialog disable-outside-click-to-close v-model="showDeleteConfirm" :options="{ title: __('Delete Offline Invoice'), size: 'md' }">
 		<template #body-content>
 			<div v-if="invoiceToDelete" class="flex flex-col gap-3 sm:flex flex-col gap-4">
 				<div class="flex items-start gap-2 sm:gap-3">

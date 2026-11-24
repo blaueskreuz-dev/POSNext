@@ -1,5 +1,5 @@
 <template>
-	<Dialog v-model="isOpen" :options="{ title: dialogTitle, size: 'md' }">
+	<Dialog disable-outside-click-to-close v-model="isOpen" :options="{ title: dialogTitle, size: 'md' }">
 		<template #body-content>
 			<div class="py-4">
 				<div v-if="item" class="mb-4">

@@ -164,7 +164,7 @@
     </main>
 
     <!-- Logout Confirmation Dialog -->
-    <Dialog
+    <Dialog disable-outside-click-to-close
       v-model="showLogoutDialog"
       :options="{ title: __('Confirm Sign Out') }"
       :dismissable="!session.logout.loading"

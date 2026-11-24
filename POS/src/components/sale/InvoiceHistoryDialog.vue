@@ -1,6 +1,6 @@
 <template>
 	<!-- size "full" isn't a frappe-ui size, so no max-w-* is applied; the width cap lives in the <style> below -->
-	<Dialog v-model="show" :options="{ title: 'invoice-history', size: 'full' }">
+	<Dialog disable-outside-click-to-close v-model="show" :options="{ title: 'invoice-history', size: 'full' }">
 		<template #body>
 			<div class="h-[85vh] flex flex-col bg-white dark:bg-gray-900 p-5">
 				<!-- Header -->

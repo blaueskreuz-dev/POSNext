@@ -1,5 +1,5 @@
 <template>
-  <Dialog v-model="open" :options="{ size: 'md' }">
+  <Dialog disable-outside-click-to-close v-model="open" :options="{ size: 'md' }">
     <template #body>
       <div class="bg-white dark:bg-gray-900 p-5 select-none text-start">
         <!-- Header -->

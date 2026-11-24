@@ -4,7 +4,6 @@
 			<div
 				v-if="show"
 				class="fixed inset-0 bg-black/30 dark:bg-black/70 dialog-overlay flex items-center justify-center p-4"
-				@click.self="cancel"
 			>
 				<div class="w-full max-w-sm rounded-2xl bg-white dark:bg-gray-900 shadow-2xl p-5 select-none">
 					<div class="flex items-start justify-between mb-4">

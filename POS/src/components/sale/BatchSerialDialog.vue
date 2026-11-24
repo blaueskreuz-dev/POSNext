@@ -1,5 +1,5 @@
 <template>
-	<Dialog
+	<Dialog disable-outside-click-to-close
 		v-model="show"
 		:options="{ title: item?.has_batch_no ? __('Select Batch Numbers') : __('Select Serial Numbers'), size: 'lg' }"
 	>

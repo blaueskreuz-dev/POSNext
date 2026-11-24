@@ -1,5 +1,5 @@
 <template>
-	<Dialog v-model="show" :options="{ title: __('Apply'), size: 'md' }">
+	<Dialog disable-outside-click-to-close v-model="show" :options="{ title: __('Apply'), size: 'md' }">
 		<template #body-content>
 			<div class="flex flex-col gap-4">
 				<!-- Info Banner -->

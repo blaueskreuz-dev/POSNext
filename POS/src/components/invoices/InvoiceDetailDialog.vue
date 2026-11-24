@@ -1,5 +1,5 @@
 <template>
-	<Dialog
+	<Dialog disable-outside-click-to-close
 		v-model="show"
 		:options="{ title: __('Invoice Details'), size: '5xl' }"
 	>

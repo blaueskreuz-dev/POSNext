@@ -1,5 +1,5 @@
 <template>
-	<Dialog v-model="show" :options="{ size: '3xl' }">
+	<Dialog disable-outside-click-to-close v-model="show" :options="{ size: '3xl' }">
 		<template #body-title>
 			<h3 class="text-lg font-semibold text-gray-900">{{ __('Stock Lookup') }}</h3>
 		</template>

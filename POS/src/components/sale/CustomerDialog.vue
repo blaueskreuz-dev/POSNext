@@ -1,5 +1,5 @@
 <template>
-	<Dialog v-model="show" :options="{ title: __('Select Customer'), size: 'md' }">
+	<Dialog disable-outside-click-to-close v-model="show" :options="{ title: __('Select Customer'), size: 'md' }">
 		<template #body-title>
 			<span class="sr-only">{{ __('Search and select a customer for the transaction') }}</span>
 		</template>

@@ -4,7 +4,6 @@
 		<div
 			v-if="show"
 			class="fixed inset-0 bg-black bg-opacity-50 z-[300]"
-			@click.self="handleClose"
 		>
 			<!-- Main Container -->
 			<div class="fixed inset-0 flex items-center justify-center p-4">
@@ -658,7 +657,6 @@
 					<div
 						v-if="showDeleteConfirm"
 						class="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[400]"
-						@click.self="cancelDelete"
 					>
 						<div class="bg-white rounded-lg shadow-2xl max-w-md w-full mx-4 p-6">
 							<div class="flex items-start gap-4">

@@ -1,5 +1,5 @@
 <template>
-	<Dialog v-model="show" :options="{ size: 'sm' }">
+	<Dialog disable-outside-click-to-close v-model="show" :options="{ size: 'sm' }">
 		<template #body>
 			<div class="bg-white dark:bg-gray-900 p-5 select-none">
 				<div class="flex items-start justify-between mb-4">

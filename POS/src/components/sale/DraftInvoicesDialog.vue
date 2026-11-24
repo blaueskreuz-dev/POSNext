@@ -4,7 +4,6 @@
 			<div
 				v-if="show"
 				class="fixed inset-0 bg-black/30 dark:bg-black/70 dialog-overlay flex items-center justify-center p-4"
-				@click.self="show = false"
 			>
 				<div class="w-full max-w-3xl h-[80vh] flex flex-col rounded-2xl bg-white dark:bg-gray-900 shadow-2xl p-5 select-none">
 					<!-- Header -->
@@ -119,7 +118,6 @@
 			<div
 				v-if="confirmTarget"
 				class="fixed inset-0 bg-black/30 dark:bg-black/70 dialog-overlay flex items-center justify-center p-4"
-				@click.self="confirmTarget = null"
 			>
 				<div class="w-full max-w-sm rounded-2xl bg-white dark:bg-gray-900 shadow-2xl p-5 select-none">
 					<h3 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">

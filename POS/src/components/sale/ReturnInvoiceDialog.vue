@@ -1,5 +1,5 @@
 <template>
-	<Dialog
+	<Dialog disable-outside-click-to-close
 		v-model="showDialog"
 		:options="{ title: __('Create Return Invoice'), size: '5xl' }"
 	>
@@ -198,7 +198,7 @@
 	</Dialog>
 
 	<!-- Return Process Modal -->
-	<Dialog
+	<Dialog disable-outside-click-to-close
 		v-model="returnModal.visible"
 		:options="{ title: __('Process Return'), size: '5xl' }"
 	>
@@ -692,7 +692,7 @@
 	</Dialog>
 
 	<!-- Error Dialog -->
-	<Dialog
+	<Dialog disable-outside-click-to-close
 		v-model="errorDialog.visible"
 		:options="{ title: errorDialog.title, size: 'sm' }"
 	>
@@ -713,7 +713,7 @@
 	</Dialog>
 
 	<!-- Return Period Expired Dialog -->
-	<Dialog
+	<Dialog disable-outside-click-to-close
 		v-model="returnExpiredDialog.visible"
 		:options="{ title: __('Return Period Expired'), size: 'md' }"
 	>

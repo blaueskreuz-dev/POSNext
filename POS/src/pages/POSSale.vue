@@ -563,7 +563,7 @@
 			/>
 
 			<!-- Clear Cart Confirmation Dialog -->
-			<Dialog
+			<Dialog disable-outside-click-to-close
 				v-model="uiStore.showClearCartDialog"
 				:options="{ title: __('Clear Cart?'), size: 'xs' }"
 			>
@@ -596,7 +596,7 @@
 			</Dialog>
 
 			<!-- Logout Confirmation Dialog -->
-			<Dialog
+			<Dialog disable-outside-click-to-close
 				v-model="uiStore.showLogoutDialog"
 				:options="{ title: __('Sign Out Confirmation'), size: 'md' }"
 				:dismissable="!session.logout.loading"
@@ -747,7 +747,7 @@
 			</Dialog>
 
 			<!-- Success Dialog -->
-			<Dialog
+			<Dialog disable-outside-click-to-close
 				v-model="uiStore.showSuccessDialog"
 				:options="{ title: __('Invoice Created Successfully'), size: 'md' }"
 			>
@@ -802,7 +802,7 @@
 			</Dialog>
 
 			<!-- Error Dialog -->
-			<Dialog
+			<Dialog disable-outside-click-to-close
 				v-model="uiStore.showErrorDialog"
 				:options="{ title: uiStore.errorDialogTitle || __('Error'), size: 'md' }"
 			>
