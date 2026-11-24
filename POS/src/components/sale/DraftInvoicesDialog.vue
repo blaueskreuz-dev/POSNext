@@ -1,155 +1,147 @@
 <template>
-	<Teleport to="body">
-		<Transition name="dialog">
-			<div
-				v-if="show"
-				class="fixed inset-0 bg-black/30 dark:bg-black/70 dialog-overlay flex items-center justify-center p-4"
-			>
-				<div class="w-full max-w-3xl h-[80vh] flex flex-col rounded-2xl bg-white dark:bg-gray-900 shadow-2xl p-5 select-none">
-					<!-- Header -->
-					<div class="flex items-start justify-between mb-4">
-						<h3 class="text-xl font-semibold text-gray-900 dark:text-gray-100">
-							{{ __('Draft Invoices') }}
-						</h3>
-						<button
-							class="-me-2 -mt-1 p-2 rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 touch-manipulation"
-							:aria-label="__('Close')"
-							@click="show = false"
-						>
-							<FeatherIcon name="x" class="w-6 h-6" />
-						</button>
-					</div>
-
-					<!-- Empty State -->
-					<div
-						v-if="drafts.length === 0"
-						class="flex-1 flex flex-col items-center justify-center text-center"
-					>
-						<FeatherIcon name="file-text" class="w-12 h-12 text-gray-300 mb-3" />
-						<p class="text-base font-semibold text-gray-900 dark:text-gray-100">
-							{{ __('No draft invoices') }}
-						</p>
-						<p class="text-sm text-gray-500 mt-1">
-							{{ __('Save invoices as drafts to continue later') }}
-						</p>
-					</div>
-
-					<!-- Drafts table (same look as the cart rows) -->
-					<div
-						v-else
-						class="flex-1 min-h-0 overflow-y-auto flex flex-col gap-2 rounded-xl bg-gray-100 dark:bg-gray-800 p-2 pt-0"
-					>
-						<div
-							:class="[
-								gridCols,
-								'sticky top-0 z-[1] bg-gray-100 dark:bg-gray-800 border border-transparent px-3 pt-3 pb-1 text-sm font-semibold text-gray-600 dark:text-gray-400',
-							]"
-						>
-							<span>{{ __('ID') }}</span>
-							<span>{{ __('Time') }}</span>
-							<span class="text-end">{{ __('Items') }}</span>
-							<span class="text-end">{{ __('Total') }}</span>
-							<span></span>
-						</div>
-
-						<div
-							v-for="draft in drafts"
-							:key="draft.draft_id"
-							:class="[
-								gridCols,
-								'rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 shadow-sm px-3 py-3 hover:bg-primary/5 hover:border-primary/50 active:bg-primary/10 cursor-pointer transition-colors duration-100',
-							]"
-							@click="$emit('load-draft', draft)"
-						>
-							<span class="text-base font-semibold text-gray-900 dark:text-gray-100 truncate">
-								{{ draft.draft_id }}
-							</span>
-							<span class="text-base text-gray-700 dark:text-gray-300 tabular-nums">
-								{{ formatDateTime(draft.created_at) }}
-							</span>
-							<span class="text-base text-gray-700 dark:text-gray-300 tabular-nums text-end">
-								{{ draft.items?.length || 0 }}
-							</span>
-							<span class="text-lg font-bold text-gray-900 dark:text-gray-100 tabular-nums text-end">
-								{{ formatCurrency(calculateTotal(draft.items)) }}
-							</span>
-							<div class="flex items-center justify-end gap-1">
-								<button
-									v-if="allowPrintDraftInvoices"
-									type="button"
-									class="w-10 h-10 flex items-center justify-center rounded-lg text-gray-400 hover:text-primary hover:bg-primary/10 active:bg-primary/20 transition-colors touch-manipulation"
-									:aria-label="__('Print draft')"
-									:title="__('Print draft')"
-									@click.stop="handlePrintDraft(draft)"
-								>
-									<FeatherIcon name="printer" class="w-5 h-5" />
-								</button>
-								<button
-									type="button"
-									class="w-10 h-10 flex items-center justify-center rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 active:bg-red-100 transition-colors touch-manipulation"
-									:aria-label="__('Delete draft')"
-									:title="__('Delete draft')"
-									@click.stop="askConfirm(draft.draft_id)"
-								>
-									<FeatherIcon name="trash-2" class="w-5 h-5" />
-								</button>
-							</div>
-						</div>
-					</div>
-
-					<!-- Footer -->
-					<div v-if="drafts.length > 0" class="pt-4">
-						<button
-							type="button"
-							class="h-14 px-6 rounded-xl bg-red-50 dark:bg-red-900/30 text-base font-semibold text-red-600 dark:text-red-400 active:bg-red-100 dark:active:bg-red-900/50 transition-colors duration-75 touch-manipulation"
-							@click="askConfirm('all')"
-						>
-							{{ __('Clear All') }}
-						</button>
-					</div>
-				</div>
-			</div>
-		</Transition>
-	</Teleport>
-
-	<!-- Delete confirmation (single draft or all) -->
-	<Teleport to="body">
-		<Transition name="dialog">
-			<div
-				v-if="confirmTarget"
-				class="fixed inset-0 bg-black/30 dark:bg-black/70 dialog-overlay flex items-center justify-center p-4"
-			>
-				<div class="w-full max-w-sm rounded-2xl bg-white dark:bg-gray-900 shadow-2xl p-5 select-none">
-					<h3 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
-						{{ confirmTarget === 'all' ? __('Clear All Drafts?') : __('Delete Draft?') }}
+	<Dialog disable-outside-click-to-close v-model="show" :options="{ size: '5xl' }">
+		<template #body>
+			<div class="h-[85vh] flex flex-col bg-white dark:bg-gray-900 p-5 select-none">
+				<!-- Header -->
+				<div class="flex items-start justify-between mb-4">
+					<h3 class="text-2xl font-semibold text-gray-900 dark:text-gray-100">
+						{{ __('Draft Invoices') }}
 					</h3>
-					<p class="text-base text-gray-600 dark:text-gray-400 mb-5">
-						{{
-							confirmTarget === 'all'
-								? __('Permanently delete all {0} draft invoices?', [drafts.length])
-								: __('Permanently delete this draft invoice?')
-						}}
+					<button
+						class="-me-2 -mt-1 p-2 rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 touch-manipulation"
+						:aria-label="__('Close')"
+						@click="show = false"
+					>
+						<FeatherIcon name="x" class="w-7 h-7" />
+					</button>
+				</div>
+
+				<!-- Empty State -->
+				<div
+					v-if="drafts.length === 0"
+					class="flex-1 flex flex-col items-center justify-center text-center"
+				>
+					<p class="text-lg font-semibold text-gray-900 dark:text-gray-100">
+						{{ __('No draft invoices') }}
 					</p>
-					<div class="grid grid-cols-2 gap-2">
-						<button
-							type="button"
-							class="h-14 rounded-xl bg-gray-200 dark:bg-gray-700 text-base font-semibold text-gray-700 dark:text-gray-200 active:bg-gray-300 dark:active:bg-gray-600 transition-colors duration-75 touch-manipulation"
-							@click="confirmTarget = null"
-						>
-							{{ __('Cancel') }}
-						</button>
-						<button
-							type="button"
-							class="h-14 rounded-xl bg-red-600 text-base font-bold text-white active:bg-red-700 transition-colors duration-75 touch-manipulation"
-							@click="confirmDelete"
-						>
-							{{ confirmTarget === 'all' ? __('Clear All') : __('Delete') }}
-						</button>
+					<p class="text-base text-gray-500 mt-1">
+						{{ __('Save invoices as drafts to continue later') }}
+					</p>
+				</div>
+
+				<!-- Drafts table (same look as the invoice history dialog) -->
+				<div
+					v-else
+					class="flex-1 min-h-0 overflow-y-auto flex flex-col gap-2 rounded-xl bg-gray-100 dark:bg-gray-800 p-2 pt-0"
+				>
+					<div
+						:class="[
+							gridCols,
+							'sticky top-0 z-[1] bg-gray-100 dark:bg-gray-800 border border-transparent px-3 pt-3 pb-1 text-base font-semibold text-gray-600 dark:text-gray-400',
+						]"
+					>
+						<span>{{ __('Date') }}</span>
+						<span class="text-end">{{ __('Items') }}</span>
+						<span class="text-end">{{ __('Total') }}</span>
+						<span></span>
+					</div>
+
+					<div
+						v-for="draft in drafts"
+						:key="draft.draft_id"
+						:class="[
+							gridCols,
+							'rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 shadow-sm px-4 py-3',
+						]"
+					>
+						<span class="text-xl font-semibold text-gray-900 dark:text-gray-100 tabular-nums truncate">
+							{{ formatDateTime(draft.created_at) }}
+						</span>
+						<span class="text-lg text-gray-700 dark:text-gray-300 tabular-nums text-end">
+							{{ draft.items?.length || 0 }}
+						</span>
+						<span class="text-xl font-bold text-gray-900 dark:text-gray-100 tabular-nums text-end">
+							{{ formatCurrency(calculateTotal(draft.items)) }}
+						</span>
+						<div class="flex items-center justify-end gap-4">
+							<button
+								type="button"
+								:class="[actionButtonClass, 'bg-primary hover:bg-primary-hover active:bg-primary-active']"
+								@click="askConfirm(draft.draft_id)"
+							>
+								{{ __('Delete') }}
+							</button>
+							<button
+								v-if="allowPrintDraftInvoices"
+								type="button"
+								:class="[actionButtonClass, 'bg-primary hover:bg-primary-hover active:bg-primary-active']"
+								@click="handlePrintDraft(draft)"
+							>
+								{{ __('Print') }}
+							</button>
+							<button
+								type="button"
+								:class="[actionButtonClass, 'bg-primary hover:bg-primary-hover active:bg-primary-active']"
+								@click="$emit('load-draft', draft)"
+							>
+								{{ __('Open') }}
+							</button>
+						</div>
 					</div>
 				</div>
+
+				<!-- Footer -->
+				<div v-if="drafts.length > 0" class="pt-4">
+					<button
+						type="button"
+						class="h-16 px-10 rounded-xl bg-primary hover:bg-primary-hover active:bg-primary-active text-white text-xl font-bold shadow-md transition-colors duration-75 touch-manipulation"
+						@click="askConfirm('all')"
+					>
+						{{ __('Clear All') }}
+					</button>
+				</div>
 			</div>
-		</Transition>
-	</Teleport>
+		</template>
+	</Dialog>
+
+	<!-- Delete confirmation (single draft or all), same look as the clear cart dialog -->
+	<Dialog
+		disable-outside-click-to-close
+		:model-value="confirmTarget !== null"
+		:options="{ size: 'md' }"
+		@update:model-value="(open) => { if (!open) confirmTarget = null }"
+	>
+		<template #body>
+			<div class="bg-white dark:bg-gray-900 p-5 select-none text-start">
+				<h3 class="mb-4 text-2xl font-bold text-gray-900 dark:text-gray-100">
+					{{ confirmTarget === 'all' ? __('Clear All Drafts?') : __('Delete Draft?') }}
+				</h3>
+				<p class="mb-6 text-lg text-gray-700 dark:text-gray-300">
+					{{
+						confirmTarget === 'all'
+							? __('Permanently delete all {0} draft invoices?', [drafts.length])
+							: __('Permanently delete this draft invoice?')
+					}}
+				</p>
+				<div class="grid grid-cols-2 gap-3">
+					<button
+						type="button"
+						class="h-20 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-xl font-semibold hover:bg-gray-200 active:bg-gray-300 dark:hover:bg-gray-700 dark:active:bg-gray-600 transition-colors duration-75 touch-manipulation"
+						@click="confirmTarget = null"
+					>
+						{{ __('Cancel') }}
+					</button>
+					<button
+						type="button"
+						class="h-20 rounded-xl bg-red-600 hover:bg-red-700 active:bg-red-800 text-white text-xl font-bold shadow-lg transition-colors duration-75 touch-manipulation"
+						@click="confirmDelete"
+					>
+						{{ confirmTarget === 'all' ? __('Clear All') : __('Delete') }}
+					</button>
+				</div>
+			</div>
+		</template>
+	</Dialog>
 </template>
 
 <script setup>
@@ -162,7 +154,7 @@ import {
 } from "@/utils/currency"
 import { clearAllDrafts, deleteDraft, getAllDrafts } from "@/utils/draftManager"
 import { printInvoiceCustom } from "@/utils/printInvoice"
-import { FeatherIcon } from "frappe-ui"
+import { Dialog, FeatherIcon } from "frappe-ui"
 import { computed, onMounted, ref, watch } from "vue"
 
 const { showSuccess, showError } = useToast()
@@ -182,8 +174,13 @@ const props = defineProps({
 
 const emit = defineEmits(["update:modelValue", "load-draft", "drafts-updated"])
 
-const gridCols =
-	"grid grid-cols-[minmax(0,1fr)_9rem_5rem_9rem_6rem] items-center gap-3"
+const gridCols = computed(
+	() =>
+		`grid ${props.allowPrintDraftInvoices ? "grid-cols-[minmax(0,1fr)_6rem_10rem_25rem]" : "grid-cols-[minmax(0,1fr)_6rem_10rem_17rem]"} items-center gap-3`,
+)
+
+const actionButtonClass =
+	"w-28 h-14 flex items-center justify-center rounded-xl text-white text-lg font-semibold shadow-sm transition-colors duration-75 touch-manipulation"
 
 const show = computed({
 	get: () => props.modelValue,
@@ -266,12 +263,9 @@ function handlePrintDraft(draft) {
 
 const pad = (n) => String(n).padStart(2, "0")
 
-/** "14:30" for today, "09.11. 14:30" otherwise */
 function formatDateTime(dateStr) {
 	const date = new Date(dateStr)
-	const time = `${pad(date.getHours())}:${pad(date.getMinutes())}`
-	if (date.toDateString() === new Date().toDateString()) return time
-	return `${pad(date.getDate())}.${pad(date.getMonth() + 1)}. ${time}`
+	return `${pad(date.getDate())}.${pad(date.getMonth() + 1)}.${date.getFullYear()}, ${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
 
 function formatCurrency(amount) {
