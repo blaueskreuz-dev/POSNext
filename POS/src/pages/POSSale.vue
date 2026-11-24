@@ -524,151 +524,52 @@
 				</template>
 			</Dialog>
 
-			<!-- Logout Confirmation Dialog -->
+			<!-- Logout Confirmation Dialog (same look as the clear cart dialog) -->
 			<Dialog disable-outside-click-to-close
 				v-model="uiStore.showLogoutDialog"
-				:options="{ title: __('Sign Out Confirmation'), size: 'md' }"
+				:options="{ size: 'md' }"
 				:dismissable="!session.logout.loading"
 			>
-				<template #body-content>
-					<!-- WITH SHIFT OPEN -->
-					<div v-if="shiftStore.hasOpenShift" class="px-4 py-5">
-						<div class="text-center mb-6">
-							<div
-								class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-gradient-to-br from-red-100 to-red-200 shadow-md mb-4"
-							>
-								<svg
-									class="h-8 w-8 text-red-600"
-									fill="none"
-									stroke="currentColor"
-									viewBox="0 0 24 24"
-								>
-									<path
-										stroke-linecap="round"
-										stroke-linejoin="round"
-										stroke-width="2"
-										d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-									/>
-								</svg>
-							</div>
-							<h3 class="text-lg font-bold text-red-600 mb-2">
-								{{ __("Your Shift is Still Open!") }}
-							</h3>
-							<p class="text-sm text-gray-600 max-w-sm mx-auto">
-								{{
-									__("Close your shift first to save all transactions properly")
-								}}
-							</p>
-						</div>
+				<template #body>
+					<div class="bg-white dark:bg-gray-900 p-5 select-none text-start">
+						<h3 class="mb-4 text-2xl font-bold text-gray-900 dark:text-gray-100">
+							{{ shiftStore.hasOpenShift ? __("Your Shift is Still Open!") : __("Sign Out?") }}
+						</h3>
+						<p class="mb-6 text-lg text-gray-700 dark:text-gray-300">
+							{{
+								shiftStore.hasOpenShift
+									? __("Close your shift first to save all transactions properly")
+									: __("You will be logged out of POS Next")
+							}}
+						</p>
 
-						<!-- Action Buttons -->
-						<div class="space-y-3 max-w-md mx-auto">
-							<!-- Recommended Action - BLUE -->
+						<button
+							v-if="shiftStore.hasOpenShift"
+							type="button"
+							:disabled="session.logout.loading"
+							class="mb-3 w-full h-20 rounded-xl bg-primary hover:bg-primary-hover active:bg-primary-active disabled:bg-primary-disabled disabled:shadow-none text-white text-xl font-bold shadow-lg transition-colors duration-75 touch-manipulation"
+							@click="logoutWithCloseShift"
+						>
+							{{ __("Close Shift & Sign Out") }}
+						</button>
+
+						<div class="grid grid-cols-2 gap-3">
 							<button
-								@click="logoutWithCloseShift"
+								type="button"
 								:disabled="session.logout.loading"
-								class="w-full flex items-center justify-center px-5 py-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-lg shadow-lg hover:shadow-blue-500/30 transition-[background,box-shadow,opacity,transform] duration-200 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02] active:scale-[0.98]"
-							>
-								<svg
-									class="w-5 h-5 me-2"
-									fill="none"
-									stroke="currentColor"
-									viewBox="0 0 24 24"
-								>
-									<path
-										stroke-linecap="round"
-										stroke-linejoin="round"
-										stroke-width="2"
-										d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"
-									/>
-								</svg>
-								{{ __("Close Shift & Sign Out") }}
-							</button>
-
-							<!-- Alternative Actions -->
-							<div class="grid grid-cols-2 gap-2">
-								<button
-									@click="confirmLogout"
-									:disabled="session.logout.loading"
-									class="px-4 py-3 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-red-500/30 transition-[background,box-shadow,opacity] duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-								>
-									{{ __("Skip & Sign Out") }}
-								</button>
-								<button
-									@click="uiStore.showLogoutDialog = false"
-									:disabled="session.logout.loading"
-									class="px-4 py-3 bg-white hover:bg-gray-50 text-gray-700 font-semibold text-sm rounded-lg transition-[background-color,border-color,opacity] duration-200 disabled:opacity-50 disabled:cursor-not-allowed border border-gray-300 hover:border-gray-400"
-								>
-									{{ __("Cancel") }}
-								</button>
-							</div>
-						</div>
-					</div>
-
-					<!-- WITHOUT SHIFT (Simple confirmation) -->
-					<div v-else class="px-4 py-5">
-						<div class="text-center mb-6">
-							<div
-								class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-gradient-to-br from-red-100 to-red-200 shadow-md mb-4"
-							>
-								<svg
-									class="h-8 w-8 text-red-600"
-									fill="none"
-									stroke="currentColor"
-									viewBox="0 0 24 24"
-								>
-									<path
-										stroke-linecap="round"
-										stroke-linejoin="round"
-										stroke-width="2"
-										d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-									/>
-								</svg>
-							</div>
-							<h3 class="text-lg font-bold text-red-600 mb-2">
-								{{ __("Sign Out?") }}
-							</h3>
-							<p class="text-sm text-gray-600">
-								{{ __("You will be logged out of POS Next") }}
-							</p>
-						</div>
-
-						<div class="grid grid-cols-2 gap-3 max-w-sm mx-auto">
-							<button
+								class="h-20 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-xl font-semibold hover:bg-gray-200 active:bg-gray-300 dark:hover:bg-gray-700 dark:active:bg-gray-600 disabled:opacity-50 transition-colors duration-75 touch-manipulation"
 								@click="uiStore.showLogoutDialog = false"
-								:disabled="session.logout.loading"
-								class="px-5 py-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-md hover:shadow-blue-500/30 transition-[background-color,box-shadow,opacity,transform] duration-200 disabled:opacity-50 transform hover:scale-[1.02] active:scale-[0.98]"
 							>
 								{{ __("Cancel") }}
 							</button>
 							<button
-								@click="confirmLogout"
+								type="button"
 								:disabled="session.logout.loading"
-								class="px-5 py-4 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-semibold rounded-lg shadow-lg hover:shadow-red-500/30 transition-[background,box-shadow,opacity,transform] duration-200 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02] active:scale-[0.98]"
+								class="h-20 rounded-xl bg-primary hover:bg-primary-hover active:bg-primary-active disabled:bg-primary-disabled disabled:shadow-none text-white text-xl font-bold shadow-lg transition-colors duration-75 touch-manipulation"
+								@click="confirmLogout"
 							>
-								<span v-if="!session.logout.loading">{{ __("Sign Out") }}</span>
-								<span v-else class="flex items-center justify-center">
-									<svg
-										class="animate-spin h-5 w-5 me-2"
-										fill="none"
-										viewBox="0 0 24 24"
-									>
-										<circle
-											class="opacity-25"
-											cx="12"
-											cy="12"
-											r="10"
-											stroke="currentColor"
-											stroke-width="4"
-										></circle>
-										<path
-											class="opacity-75"
-											fill="currentColor"
-											d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-										></path>
-									</svg>
-									{{ __("Signing Out...") }}
-								</span>
+								<template v-if="session.logout.loading">{{ __("Signing Out...") }}</template>
+								<template v-else>{{ shiftStore.hasOpenShift ? __("Skip & Sign Out") : __("Sign Out") }}</template>
 							</button>
 						</div>
 					</div>
