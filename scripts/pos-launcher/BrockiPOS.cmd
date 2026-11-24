@@ -1,4 +1,4 @@
-<# : Batch part: double-click runs this file with PowerShell
+<# :
 @echo off
 set "BROCKIPOS_SCRIPT=%~f0"
 powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command "iex ([IO.File]::ReadAllText($env:BROCKIPOS_SCRIPT))"
@@ -19,7 +19,7 @@ public static class Win {
     [DllImport("user32.dll")] public static extern bool MoveWindow(IntPtr h, int x, int y, int w, int ht, bool repaint);
 }
 "@
-[Win]::SetProcessDPIAware() | Out-Null   # real pixels, also with display scaling
+[Win]::SetProcessDPIAware() | Out-Null
 Add-Type -AssemblyName System.Windows.Forms
 
 Get-CimInstance Win32_Process -Filter "Name='msedge.exe'" | Where-Object { $_.CommandLine -like "*$EdgeProfile*" } |
@@ -33,7 +33,6 @@ if (Test-Path $prefs) {
 function Open-Fullscreen([string]$Page, $Screen) {
     $before = [Win]::GetForegroundWindow()
     Start-Process $Edge "--user-data-dir=`"$EdgeProfile`" --app=$Url/$Page --no-first-run --disable-pinch --overscroll-history-navigation=0"
-    # Wait until the new Edge window has the focus
     for ($i = 0; $i -lt 60; $i++) {
         Start-Sleep -Milliseconds 500
         $h = [Win]::GetForegroundWindow(); $procId = 0
@@ -41,7 +40,7 @@ function Open-Fullscreen([string]$Page, $Screen) {
         if ($h -ne $before -and (Get-Process -Id $procId).Name -eq "msedge") { break }
     }
     $b = $Screen.Bounds
-    [Win]::ShowWindow($h, 9) | Out-Null   # un-maximize, otherwise it can't be moved
+    [Win]::ShowWindow($h, 9) | Out-Null
     [Win]::MoveWindow($h, $b.X, $b.Y, $b.Width, $b.Height, $true) | Out-Null
     Start-Sleep -Milliseconds 500
     if ([Win]::GetForegroundWindow() -eq $h) { [System.Windows.Forms.SendKeys]::SendWait("{F11}") }
