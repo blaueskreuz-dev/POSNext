@@ -847,6 +847,7 @@ import {
 } from "@/utils/currency"
 import { offlineWorker } from "@/utils/offline/workerClient"
 import { logger } from "@/utils/logger"
+import { openCashDrawer } from "@/utils/qzTray"
 import { Dialog, FeatherIcon, createResource, call } from "frappe-ui"
 import { computed, ref, watch, nextTick } from "vue"
 import { useToast } from "@/composables/useToast"
@@ -857,7 +858,7 @@ import { useExchangeRate, getPaymentMethodCurrency } from "@/composables/useExch
 
 const log = logger.create("PaymentDialog")
 const settingsStore = usePOSSettingsStore()
-const { showWarning, showInfo } = useToast()
+const { showWarning, showInfo, showError } = useToast()
 
 const props = defineProps({
 	modelValue: Boolean,
@@ -1998,6 +1999,13 @@ function _upsertPaymentEntry(method, amt, foreignAmount = null) {
 		})
 	}
 	_logPayment(method.mode_of_payment, amt, false, foreignAmount)
+
+	// Every payment method with type "Cash" open the drawer automatically
+	if (isCashPaymentMethod(method)) {
+		openCashDrawer().catch((err) =>
+			showError(err?.message || __("Failed to open cash register")),
+		)
+	}
 }
 
 function _logPayment(modeOfPayment, amt, isCustomerCredit, foreignAmount = null) {
