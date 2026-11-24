@@ -281,9 +281,13 @@ export async function printHTML(html, printerName, options = {}) {
 // Cash Drawer
 // ============================================================================
 
-// The Cash drawer Needs a ESC pulse on the kick out connector pin 2 (m = 0).
-// Be Aware that the max values for a Long pluse are around 510ms.
-const DRAWER_KICK_COMMAND = "\x1B\x70\x00\xFF\xFF"
+// The Cash drawer Needs a ESC pulse on the kick out connector pin 2 OR 5 (m = 0).
+//   1B 70 00 19 FA -> pin 2 (m = 0), 50ms on / 500ms off
+//   1B 70 01 19 FA -> pin 5 (m = 1), 50ms on / 500ms off
+
+// In our case we send a signal to both pins to make 
+// sure it works on more hardware
+const DRAWER_KICK_COMMAND = "1B700019FA" + "1B700119FA"
 
 /**
  * Open the cash drawer attached to the saved receipt printer via an ESC/POS pulse.
