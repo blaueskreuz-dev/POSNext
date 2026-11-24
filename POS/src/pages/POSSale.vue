@@ -27,47 +27,15 @@
 				<template #menu-items>
 					<button
 						@click="showPOSSettings = true"
-						class="w-full text-start px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2.5 transition-colors"
+						class="user-menu-item text-gray-900 hover:bg-gray-100 active:bg-gray-200"
 					>
-						<svg
-							class="w-4 h-4 shrink-0 text-gray-600"
-							fill="none"
-							stroke="currentColor"
-							viewBox="0 0 24 24"
-						>
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-							/>
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-							/>
-						</svg>
-						<span>{{ __("Settings") }}</span>
+						{{ __("Settings") }}
 					</button>
 					<button
 						@click="openCustomerDisplayWindow"
-						class="w-full text-start px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2.5 transition-colors"
+						class="user-menu-item text-gray-900 hover:bg-gray-100 active:bg-gray-200"
 					>
-						<svg
-							class="w-4 h-4 shrink-0 text-gray-600"
-							fill="none"
-							stroke="currentColor"
-							viewBox="0 0 24 24"
-						>
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-							/>
-						</svg>
-						<span>{{ __("Customer Display") }}</span>
+						{{ __("Customer Display") }}
 					</button>
 					<button
 						v-if="offlineStore.pendingInvoicesCount > 0"
@@ -75,24 +43,11 @@
 							uiStore.showOfflineInvoicesDialog = true;
 							offlineStore.loadPendingInvoices();
 						"
-						class="w-full text-start px-3 py-2 text-sm text-gray-700 hover:bg-orange-50 flex items-center gap-2.5 transition-colors relative"
+						class="user-menu-item text-gray-900 hover:bg-gray-100 active:bg-gray-200"
 					>
-						<svg
-							class="w-4 h-4 shrink-0 text-orange-600"
-							fill="none"
-							stroke="currentColor"
-							viewBox="0 0 24 24"
-						>
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-							/>
-						</svg>
-						<span>{{ __("Offline Invoices") }}</span>
+						{{ __("Offline Invoices") }}
 						<span
-							class="ms-auto text-xs bg-orange-600 text-white px-1.5 py-0.5 rounded-full"
+							class="ms-auto min-w-8 h-8 px-2 flex items-center justify-center rounded-full bg-orange-600 text-white text-base font-bold"
 						>
 							{{ offlineStore.pendingInvoicesCount }}
 						</span>
@@ -100,44 +55,18 @@
 					<button
 						v-if="canAccessShiftActions && canSwitchToDesk"
 						@click="switchToDesk"
-						class="w-full text-start px-3 py-2 text-sm text-gray-700 hover:bg-emerald-50 flex items-center gap-2.5 transition-colors"
+						class="user-menu-item text-gray-900 hover:bg-gray-100 active:bg-gray-200"
 					>
-						<svg
-							class="w-4 h-4 shrink-0 text-emerald-600"
-							fill="none"
-							stroke="currentColor"
-							viewBox="0 0 24 24"
-						>
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M3 7h18M3 12h18M3 17h18"
-							/>
-						</svg>
-						<span>{{ __("Switch To Desk") }}</span>
+						{{ __("Switch To Desk") }}
 					</button>
 				</template>
 				<template #additional-actions>
 					<button
 						v-if="canAccessShiftActions"
 						@click="handleCloseShift()"
-						class="w-full text-start px-3 py-2 text-sm text-gray-700 hover:bg-orange-50 flex items-center gap-2.5 transition-colors"
+						class="user-menu-item text-gray-900 hover:bg-gray-100 active:bg-gray-200"
 					>
-						<svg
-							class="w-4 h-4 shrink-0 text-orange-600"
-							fill="none"
-							stroke="currentColor"
-							viewBox="0 0 24 24"
-						>
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-							/>
-						</svg>
-						<span>{{ __("Close Shift") }}</span>
+						{{ __("Close Shift") }}
 					</button>
 				</template>
 			</POSHeader>

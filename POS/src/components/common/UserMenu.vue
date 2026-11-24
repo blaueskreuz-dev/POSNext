@@ -1,23 +1,24 @@
 <template>
 	<div ref="menuRef" class="relative">
 		<button
+			type="button"
+			:class="[
+				'h-12 w-14 flex items-center justify-center rounded-xl transition-colors duration-75 touch-manipulation select-none',
+				isOpen
+					? 'bg-primary text-white'
+					: 'bg-gray-100 text-gray-900 hover:bg-gray-200 active:bg-gray-300',
+			]"
+			:aria-label="__('Menu')"
 			@click="isOpen = !isOpen"
-			class="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 rounded-lg transition-colors"
 		>
-			<div class="text-end mx-1 hidden sm:block">
-				<p class="text-sm font-semibold text-gray-900">{{ userName }}</p>
-			</div>
-			<Avatar :image="profileImage" :name="userName" :initials="userInitials" size="sm" />
-			<svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-			</svg>
+			<FeatherIcon name="menu" class="w-7 h-7" />
 		</button>
 
 		<!-- Dropdown Menu -->
 		<div
 			v-if="isOpen"
 			@click="handleMenuItemClick"
-			class="absolute end-0 mt-2 w-52 bg-white rounded-xl shadow-xl border border-gray-200 py-1 z-[250]"
+			class="user-menu absolute end-0 mt-2 w-72 flex flex-col gap-1 bg-white rounded-2xl shadow-2xl border border-gray-200 p-2 z-[250] select-none"
 		>
 			<!-- Menu Items -->
 			<slot name="menu-items"></slot>
@@ -91,44 +92,29 @@
 			</div>
 
 			<!-- Divider -->
-			<hr v-if="showLogout" class="my-1 border-gray-100">
+			<hr v-if="showLogout" class="my-1 border-gray-200">
 
 			<!-- Logout -->
 			<button
 				v-if="showLogout"
+				type="button"
+				class="user-menu-item text-red-600 hover:bg-red-50 active:bg-red-100"
 				@click="handleLogout"
-				class="w-full text-start px-3 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2.5 transition-colors"
 			>
-				<svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
-				</svg>
-				<span>{{ __('Logout') }}</span>
+				{{ __('Logout') }}
 			</button>
 		</div>
 	</div>
 </template>
 
 <script setup>
-import { computed, h, onMounted, onUnmounted, ref, watch } from "vue"
+import { FeatherIcon } from "frappe-ui"
+import { onMounted, onUnmounted, ref, watch } from "vue"
 import { useLocale } from "@/composables/useLocale"
-
-// Avatar Sub-component
-const Avatar = (props) => {
-	const sizeClass = props.size === 'sm' ? 'w-9 h-9' : 'w-10 h-10'
-	const bgClass = props.image ? 'bg-gray-200' : 'bg-gradient-to-br from-blue-500 to-blue-600'
-
-	return h('div', {
-		class: `${sizeClass} rounded-full flex items-center justify-center shadow-md overflow-hidden flex-shrink-0 ${bgClass}`
-	}, [
-		props.image
-			? h('img', { src: props.image, alt: props.name, class: 'w-full h-full object-cover' })
-			: h('span', { class: 'text-sm font-bold text-white' }, props.initials)
-	])
-}
 
 const { locale, supportedLocales, changeLocale } = useLocale()
 
-const props = defineProps({
+defineProps({
 	userName: {
 		type: String,
 		required: true,
@@ -148,14 +134,6 @@ const emit = defineEmits(["logout", "menu-opened", "menu-closed"])
 const menuRef = ref(null)
 const isOpen = ref(false)
 const showLanguageDropdown = ref(false)
-
-const userInitials = computed(() => {
-	const parts = (props.userName || "").split(" ").filter(Boolean)
-	if (parts.length >= 2) {
-		return (parts[0][0] + parts[1][0]).toUpperCase()
-	}
-	return (props.userName || "U").substring(0, 2).toUpperCase() || "U"
-})
 
 // Watch isOpen and emit events
 watch(isOpen, (newValue) => {
@@ -198,3 +176,9 @@ onUnmounted(() => {
 	document.removeEventListener("click", handleClickOutside)
 })
 </script>
+
+<style>
+.user-menu-item {
+	@apply w-full h-14 px-4 rounded-xl text-start text-lg font-semibold flex items-center gap-3 transition-colors duration-75 touch-manipulation;
+}
+</style>
