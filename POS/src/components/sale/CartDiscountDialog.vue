@@ -7,14 +7,9 @@
 			>
 				<div class="w-full max-w-sm rounded-2xl bg-white dark:bg-gray-900 shadow-2xl p-5 select-none">
 					<div class="flex items-start justify-between mb-4">
-						<div class="min-w-0">
-							<p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
-								{{ __('Discount') }}
-							</p>
-							<h3 class="text-xl font-semibold text-gray-900 dark:text-gray-100 truncate">
-								{{ __('Cart Discount') }}
-							</h3>
-						</div>
+						<h3 class="min-w-0 text-xl font-semibold text-gray-900 dark:text-gray-100 truncate">
+							{{ __('Cart Discount') }}
+						</h3>
 						<button
 							class="-me-2 -mt-1 p-2 rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 touch-manipulation"
 							:aria-label="__('Cancel')"

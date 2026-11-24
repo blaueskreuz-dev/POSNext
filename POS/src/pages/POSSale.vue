@@ -565,32 +565,32 @@
 			<!-- Clear Cart Confirmation Dialog -->
 			<Dialog disable-outside-click-to-close
 				v-model="uiStore.showClearCartDialog"
-				:options="{ title: __('Clear Cart?'), size: 'xs' }"
+				:options="{ size: 'md' }"
 			>
-				<template #body-content>
-					<div class="py-3">
-						<p class="text-sm text-gray-600">
+				<template #body>
+					<div class="bg-white dark:bg-gray-900 p-5 select-none text-start">
+						<h3 class="mb-4 text-2xl font-bold text-gray-900 dark:text-gray-100">
+							{{ __("Clear Cart?") }}
+						</h3>
+						<p class="mb-6 text-lg text-gray-700 dark:text-gray-300">
 							{{ __("Remove all {0} items from cart?", [cartStore.itemCount]) }}
 						</p>
-					</div>
-				</template>
-				<template #actions>
-					<div class="flex gap-2 w-full">
-						<Button
-							class="flex-1"
-							variant="subtle"
-							@click="uiStore.showClearCartDialog = false"
-						>
-							{{ __("Cancel") }}
-						</Button>
-						<Button
-							class="flex-1"
-							variant="solid"
-							theme="red"
-							@click="confirmClearCart"
-						>
-							{{ __("Clear All") }}
-						</Button>
+						<div class="grid grid-cols-2 gap-3">
+							<button
+								type="button"
+								class="h-20 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-xl font-semibold hover:bg-gray-200 active:bg-gray-300 dark:hover:bg-gray-700 dark:active:bg-gray-600 transition-colors duration-75 touch-manipulation"
+								@click="uiStore.showClearCartDialog = false"
+							>
+								{{ __("Cancel") }}
+							</button>
+							<button
+								type="button"
+								class="h-20 rounded-xl bg-red-600 hover:bg-red-700 active:bg-red-800 text-white text-xl font-bold shadow-lg transition-colors duration-75 touch-manipulation"
+								@click="confirmClearCart"
+							>
+								{{ __("Clear All") }}
+							</button>
+						</div>
 					</div>
 				</template>
 			</Dialog>
