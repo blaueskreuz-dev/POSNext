@@ -312,7 +312,7 @@ export async function openCashDrawer() {
 		{
 			type: "raw",
 			format: "command",
-			flavor: "plain",
+			flavor: "hex",
 			data: DRAWER_KICK_COMMAND,
 		},
 	]
