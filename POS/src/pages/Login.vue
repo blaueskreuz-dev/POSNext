@@ -1,90 +1,47 @@
 <template>
-  <div class="min-h-screen flex flex-col items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-md w-full space-y-8">
-      <div class="text-center">
-        <h2 class="mt-6 text-3xl font-extrabold text-gray-900">
-          {{ __('Sign in to POS Next') }}
-        </h2>
-        <p class="mt-2 text-sm text-gray-600">
-          {{ __('Access your point of sale system') }}
+  <div class="min-h-screen flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-950 p-4">
+    <div class="w-full max-w-md rounded-2xl bg-white dark:bg-gray-900 shadow-2xl p-8 select-none">
+      <div class="flex flex-col items-center text-center mb-8">
+        <div class="mb-6 rounded-lg bg-white px-3 py-2">
+          <img :src="blauesKreuzLogo" alt="Blaues Kreuz Schweiz" class="h-20 w-auto" draggable="false" />
+        </div>
+        <h2 class="text-3xl font-bold text-gray-900 dark:text-gray-100">Brocki POS</h2>
+      </div>
+
+      <form class="flex flex-col gap-4" @submit.prevent="submit">
+        <input
+          v-model="loginForm.email"
+          required
+          name="email"
+          type="text"
+          autocomplete="username"
+          :placeholder="__('Enter your username or email')"
+          :disabled="session.login.loading"
+          :class="inputClass"
+        />
+        <input
+          v-model="loginForm.password"
+          required
+          name="password"
+          type="password"
+          autocomplete="current-password"
+          :placeholder="__('Enter your password')"
+          :disabled="session.login.loading"
+          :class="inputClass"
+        />
+
+        <p v-if="session.login.error" class="text-base font-medium text-red-600">
+          {{ session.login.error.messages.join('\n') }}
         </p>
-      </div>
 
-      <div class="bg-white py-8 px-6 shadow rounded-lg">
-        <form class="space-y-6" @submit.prevent="submit">
-          <div v-if="session.login.error" class="rounded-md bg-red-50 p-4">
-            <div class="flex">
-              <div class="flex-shrink-0">
-                <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
-                </svg>
-              </div>
-              <div class="ml-3">
-                <h3 class="text-sm font-medium text-red-800">
-                  {{ __('Login Failed') }}
-                </h3>
-                <div class="mt-2 text-sm text-red-700">
-                  <p>{{ session.login.error.messages.join('\n') }}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <Input
-              v-model="loginForm.email"
-              required
-              name="email"
-              type="text"
-              :placeholder="__('Enter your username or email')"
-              :label="__('User ID / Email')"
-              :disabled="session.login.loading"
-            />
-          </div>
-
-          <div>
-            <label class="block">
-              <span class="mb-2 block text-sm leading-4 text-gray-700">{{ __('Password') }}</span>
-              <div class="relative">
-                <input
-                  v-model="loginForm.password"
-                  required
-                  name="password"
-                  :type="showPassword ? 'text' : 'password'"
-                  :placeholder="__('Enter your password')"
-                  :disabled="session.login.loading"
-                  class="form-input block w-full border-gray-400 placeholder-gray-500 pe-10"
-                />
-                <button
-                  type="button"
-                  @click="showPassword = !showPassword"
-                  class="absolute inset-y-0 end-0 flex items-center pe-3 text-gray-600 hover:text-gray-800 transition-colors focus:outline-none"
-                  :disabled="session.login.loading"
-                  tabindex="-1"
-                  :aria-label="showPassword ? __('Hide password') : __('Show password')"
-                >
-                  <FeatherIcon
-                    :name="showPassword ? 'eye-off' : 'eye'"
-                    class="h-5 w-5"
-                    :stroke-width="2"
-                  />
-                </button>
-              </div>
-            </label>
-          </div>
-
-          <div>
-            <Button
-              :loading="session.login.loading"
-              variant="solid"
-              class="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-              type="submit"
-            >
-              {{ session.login.loading ? __('Signing in...') : __('Sign in') }}
-            </Button>
-          </div>
-        </form>
-      </div>
+        <button
+          type="submit"
+          :disabled="!loginForm.email || !loginForm.password || session.login.loading"
+          class="mt-1 w-full h-20 rounded-xl bg-primary hover:bg-primary-hover active:bg-primary-active disabled:bg-primary-disabled disabled:shadow-none disabled:cursor-not-allowed text-white text-2xl font-bold shadow-lg transition-colors duration-75 touch-manipulation"
+        >
+          {{ session.login.loading ? __('Signing in...') : __('Sign in') }}
+        </button>
+      </form>
     </div>
 
     <!-- Shift Opening Dialog -->
@@ -97,7 +54,7 @@
 </template>
 
 <script setup>
-import { FeatherIcon } from "frappe-ui"
+import blauesKreuzLogo from "@/assets/blaues-kreuz-logo.svg"
 import { onMounted, reactive, ref, watch } from "vue"
 import { useRouter } from "vue-router"
 import ShiftOpeningDialog from "../components/ShiftOpeningDialog.vue"
@@ -119,14 +76,15 @@ const loginForm = reactive({
 })
 
 const showShiftDialog = ref(false)
-const showPassword = ref(false)
+
+const inputClass =
+	"block w-full h-16 rounded-xl border border-gray-300 dark:border-gray-600 px-4 text-2xl text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-900 placeholder:text-lg placeholder:text-gray-400 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
 
 // Reset state when login page mounts
 onMounted(async () => {
 	// Clear login form
 	loginForm.email = ""
 	loginForm.password = ""
-	showPassword.value = false
 
 	// Clear any login errors
 	if (session.login.error) {
