@@ -156,24 +156,14 @@
 								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M20 12H4" />
 							</svg>
 						</button>
-						<input
-							:value="formatQuantity(item.quantity)"
-							@click.stop
-							@input="updateQuantity(item, $event.target.value)"
-							@blur="handleQuantityBlur(item)"
-							@keydown.enter="$event.target.blur()"
-							type="text"
-							inputmode="decimal"
-							:disabled="item.is_resolved_barcode"
+						<span
 							:class="[
-								'w-12 h-10 text-center border-0 bg-transparent text-base font-bold tabular-nums focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary',
-								item.is_resolved_barcode
-									? 'text-amber-700 cursor-not-allowed'
-									: 'text-gray-900'
+								'w-12 h-10 flex items-center justify-center text-base font-bold tabular-nums select-none',
+								item.is_resolved_barcode ? 'text-amber-700' : 'text-gray-900'
 							]"
 							:aria-label="__('Quantity')"
 							:title="item.is_resolved_barcode ? __('Quantity locked (barcode item)') : ''"
-						/>
+						>{{ formatQuantity(item.quantity) }}</span>
 						<button
 							type="button"
 							@click.stop="incrementQuantity(item)"
@@ -734,52 +724,6 @@ function decrementQuantity(item) {
 		emit("remove-item", item.row_id);
 	} else {
 		emit("update-quantity", item.row_id, newQty);
-	}
-}
-
-/**
- * Update quantity from direct input (manual typing).
- * Allows any positive number during typing without rounding.
- *
- * @param {Object} item - Cart item to update
- * @param {String} value - New quantity value from input
- */
-  
-function updateQuantity(item, value) {
-	// Prevent editing resolved barcode items
-	if (item.is_resolved_barcode) return;
-
-	const qty = Number.parseFloat(value);
-
-	// If the input isn't a valid number (e.g., user cleared the field), do nothing
-	if (isNaN(qty)) return;
-
-	// If quantity is zero or negative, remove the item from the cart
-	if (qty <= 0) return emit("remove-item", item.row_id);
-
-	// For positive numbers, update quantity immediately (no rounding here while typing)
-	emit("update-quantity", item.row_id, qty);
-}
-
-/**
- * Handle quantity input blur - validate and round.
- * Called when user leaves the quantity input field.
- * - Removes item if quantity is 0 or invalid
- * - Rounds to 4 decimal places for consistency
- *
- * @param {Object} item - Cart item that lost focus
- */
-function handleQuantityBlur(item) {
-	// When user leaves the input field, round and validate
-	if (!item.quantity || item.quantity <= 0) {
-		// If quantity is 0 or invalid, remove the item
-		emit("remove-item", item.row_id);
-	} else {
-		// Round to 4 decimal places for consistency
-		const roundedQty = Math.round(item.quantity * 10000) / 10000;
-		if (roundedQty !== item.quantity) {
-			emit("update-quantity", item.row_id, roundedQty);
-		}
 	}
 }
 
