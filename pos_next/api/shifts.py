@@ -93,6 +93,7 @@ def check_opening_shift(user=None):
 	data["pos_opening_shift"] = frappe.get_doc("POS Opening Shift", shift_data["name"])
 	data["pos_profile"] = frappe.get_doc("POS Profile", shift_data["pos_profile"])
 	data["company"] = frappe.get_doc("Company", data["pos_profile"].company)
+	data["company_address"] = get_profile_address(data["pos_profile"])
 	# Include server timestamp so frontend can compute shift duration
 	# without timezone mismatch (period_start_date is in server timezone)
 	data["server_now"] = str(get_datetime())
@@ -139,8 +140,21 @@ def create_opening_shift(pos_profile, company, balance_details):
 	data["pos_opening_shift"] = new_pos_opening.as_dict()
 	data["pos_profile"] = frappe.get_doc("POS Profile", pos_profile)
 	data["company"] = frappe.get_doc("Company", company)
+	data["company_address"] = get_profile_address(data["pos_profile"])
 
 	return data
+
+
+def get_profile_address(pos_profile):
+	"""Address printed on receipts, sent with the shift so it is available offline."""
+	if not pos_profile.company_address:
+		return None
+	return frappe.db.get_value(
+		"Address",
+		pos_profile.company_address,
+		["address_line1", "pincode", "city", "phone"],
+		as_dict=True,
+	)
 
 
 @frappe.whitelist()
