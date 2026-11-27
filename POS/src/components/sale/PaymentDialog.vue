@@ -1,6 +1,29 @@
 <template>
-	<Dialog disable-outside-click-to-close v-model="show" :options="{ title: isSalesOrder ? __('Complete Sales Order') : __('Complete Payment'), size: dynamicDialogSize }">
-		<template #body-content>
+	<Dialog disable-outside-click-to-close v-model="show" :options="{ size: dynamicDialogSize }">
+		<template #body>
+			<div class="bg-white dark:bg-gray-900 p-5 select-none">
+			<!-- Header (same look as the other Brocki dialogs) -->
+			<div class="flex items-center justify-between mb-4">
+				<h3 class="text-2xl font-semibold text-gray-900 dark:text-gray-100">
+					{{ isSalesOrder ? __('Complete Sales Order') : __('Payment') }}
+				</h3>
+				<div class="flex items-center gap-3">
+					<!-- Open Cash Drawer (manual, same as in the action panel) -->
+					<button
+						class="h-11 px-4 rounded-xl border-2 border-primary text-primary font-semibold text-base hover:bg-primary hover:text-white active:bg-primary-active active:text-white touch-manipulation transition-colors duration-75"
+						@click="handleOpenCashDrawer"
+					>
+						{{ __('Open cash register') }}
+					</button>
+					<button
+						class="-me-2 p-2 rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 touch-manipulation"
+						:aria-label="__('Close')"
+						@click="show = false"
+					>
+						<FeatherIcon name="x" class="w-7 h-7" />
+					</button>
+				</div>
+			</div>
 			<!-- Two Column Layout - auto-sized on mobile, constrained on desktop -->
 			<div
 				:class="[
@@ -285,9 +308,9 @@
 					<!-- Invoice Summary (payments + totals, the cart behind the dialog shows the items) -->
 					<div class="bg-white rounded-xl border border-gray-200 overflow-hidden flex flex-col flex-1 min-h-0">
 						<!-- Payments List Header -->
-						<div class="flex items-center justify-between px-3 py-2 border-b border-gray-200 text-sm font-semibold text-gray-900">
+						<div class="flex items-center justify-between px-4 py-2 border-b border-gray-200 text-base font-semibold text-gray-600">
 							<span class="text-start">{{ __('Payment Method') }}</span>
-							<span class="text-end">{{ __('Amount') }}</span>
+							<span class="text-end pe-12">{{ __('Amount') }}</span>
 						</div>
 
 						<!-- Payments List (one row per logged payment, scrollable) -->
@@ -295,28 +318,28 @@
 							<div
 								v-for="(payment, index) in paymentLog"
 								:key="payment.id"
-								class="flex items-center justify-between gap-2 ps-3 pe-1 h-11 text-sm"
+								class="flex items-center justify-between gap-2 ps-4 pe-1 h-14 text-lg"
 							>
 								<span class="flex-1 min-w-0 truncate text-start text-gray-900">{{ __(payment.mode_of_payment) }}</span>
-								<span v-if="payment.foreign_amount != null" class="flex flex-col items-end leading-tight">
+								<span v-if="payment.foreign_amount != null" class="flex flex-col items-end leading-tight tabular-nums">
 									<span class="font-semibold text-gray-900">{{ formatCurrencyUtil(payment.foreign_amount, 'EUR') }}</span>
-									<span class="text-xs text-gray-500">{{ formatCurrency(payment.amount) }}</span>
+									<span class="text-sm text-gray-500">{{ formatCurrency(payment.amount) }}</span>
 								</span>
-								<span v-else class="font-semibold text-gray-900 text-end">{{ formatCurrency(payment.amount) }}</span>
+								<span v-else class="font-semibold text-gray-900 text-end tabular-nums">{{ formatCurrency(payment.amount) }}</span>
 								<button
 									@click="removeLoggedPayment(index)"
-									class="w-9 h-9 flex items-center justify-center rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+									class="w-11 h-11 flex items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 active:bg-gray-200 transition-colors touch-manipulation"
 									:title="__('Remove payment')"
 								>
-									<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
 									</svg>
 								</button>
 							</div>
 						</div>
 
-						<!-- Amounts Breakdown -->
-						<div class="border-t border-gray-200 bg-gray-50 px-3 py-2 space-y-1">
+						<!-- Additional Discount controls (only when enabled in the profile) -->
+						<div v-if="settingsStore.allowAdditionalDiscount" class="border-t border-gray-200 bg-gray-50 px-4 py-3 space-y-1">
 							<!-- Additional Discount Row -->
 							<div v-if="settingsStore.allowAdditionalDiscount" class="pb-1.5 mb-1 border-b border-dashed border-orange-200">
 								<!-- Label with calculated amount -->
@@ -392,69 +415,60 @@
 									</button>
 								</div>
 							</div>
-							<!-- Subtotal -->
-							<div class="flex items-center justify-between text-sm">
-								<span class="text-gray-600 text-start">{{ __('Subtotal') }}</span>
-								<span class="font-medium text-gray-900 text-end">{{ formatDisplay(subtotal) }}</span>
 							</div>
-							<!-- Tax -->
-							<div v-if="taxAmount > 0" class="flex items-center justify-between text-sm">
-								<span class="text-gray-600 text-start">{{ __('Tax') }}</span>
-								<span class="font-medium text-gray-900 text-end">{{ formatDisplay(taxAmount) }}</span>
-							</div>
-							<!-- Discount (shows the calculated additional discount amount) -->
-							<div v-if="discountAmount > 0" class="flex items-center justify-between text-sm">
-								<span class="text-gray-600 text-start">{{ __('Discount') }}</span>
-								<span class="font-medium text-red-600 text-end">-{{ formatDisplay(discountAmount) }}</span>
-							</div>
-							<!-- Grand Total -->
-							<div class="flex items-center justify-between pt-2 mt-1 border-t border-gray-300">
-								<span :class="['font-bold text-gray-900 text-start', isCompactMode ? 'text-sm' : 'text-base']">{{ __('Grand Total') }}</span>
-								<span :class="['font-bold text-gray-900 text-end', dynamicTextSize.grandTotal]">{{ formatDisplay(grandTotal) }}</span>
-							</div>
-							<!-- EUR mode: show the CHF total and the rate used -->
-							<div v-if="isEurMode" class="flex items-center justify-between text-xs text-gray-500">
-								<span class="text-start">{{ formatRate(eurRate) }}</span>
-								<span class="text-end">{{ formatCurrency(grandTotal) }}</span>
-							</div>
-						</div>
 
-						<!-- Payment Status - Two Equal Halves -->
-						<div class="border-t border-gray-200">
-							<div class="grid grid-cols-2 divide-x divide-gray-200">
-								<!-- Paid (Left Half) -->
-								<div :class="['bg-blue-50 text-center', isCompactMode ? 'p-2' : 'p-3']">
-									<div class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">{{ __('Paid') }}</div>
-									<div :class="['font-bold text-primary', dynamicTextSize.amount]">{{ formatDisplay(totalPaid) }}</div>
+							<!-- Totals: Total / Paid / Remaining (or Change Due).
+							     Amounts share the right edge of the payment rows above (pe-12 = width of the remove button). -->
+							<div class="border-t border-gray-200 divide-y divide-gray-200">
+								<!-- Total -->
+								<div class="bg-gray-50 ps-4 pe-12 py-3">
+									<div class="flex items-baseline justify-between gap-2">
+										<span class="text-lg font-semibold text-gray-900">{{ __('Total') }}</span>
+										<span class="text-2xl font-bold text-gray-900 tabular-nums">{{ formatDisplay(grandTotal) }}</span>
+									</div>
+									<!-- Discount applied (only when there is one) -->
+									<div v-if="discountAmount > 0" class="flex items-baseline justify-between gap-2 text-sm text-gray-500">
+										<span>{{ __('Discount') }}</span>
+										<span class="tabular-nums">-{{ formatDisplay(discountAmount) }}</span>
+									</div>
+									<!-- EUR mode: rate used and the CHF total -->
+									<div v-if="isEurMode" class="flex items-baseline justify-between gap-2 text-sm text-gray-500">
+										<span>{{ formatRate(eurRate) }}</span>
+										<span class="tabular-nums">{{ formatCurrency(grandTotal) }}</span>
+									</div>
 								</div>
-								<!-- Remaining / Change (Right Half) -->
-								<div v-if="remainingAmount > 0 && !applyWriteOff" :class="['bg-orange-50 text-center', isCompactMode ? 'p-2' : 'p-3']">
-									<div class="text-xs font-medium text-orange-600 uppercase tracking-wide mb-1">{{ __('Remaining') }}</div>
-									<div :class="['font-bold text-orange-600', dynamicTextSize.amount]">{{ formatDisplay(remainingAmount) }}</div>
+
+								<!-- Paid -->
+								<div class="flex items-baseline justify-between gap-2 ps-4 pe-12 py-3 bg-white">
+									<span class="text-lg font-semibold text-gray-600">{{ __('Paid') }}</span>
+									<span class="text-2xl font-bold text-gray-900 tabular-nums">{{ formatDisplay(totalPaid) }}</span>
+								</div>
+
+								<!-- Remaining -->
+								<div v-if="remainingAmount > 0 && !applyWriteOff" class="flex items-baseline justify-between gap-2 ps-4 pe-12 py-3 bg-orange-500">
+									<span class="text-lg font-semibold text-white">{{ __('Remaining') }}</span>
+									<span class="text-2xl font-bold text-white tabular-nums">{{ formatDisplay(remainingAmount) }}</span>
 								</div>
 								<!-- Write-off Applied -->
-								<div v-else-if="applyWriteOff && canWriteOff" :class="['bg-purple-50 text-center', isCompactMode ? 'p-2' : 'p-3']">
-									<div class="text-xs font-medium text-purple-600 uppercase tracking-wide mb-1">{{ __('Write Off') }}</div>
-									<div :class="['font-bold text-purple-600', dynamicTextSize.amount]">{{ formatCurrency(writeOffAmount) }}</div>
+								<div v-else-if="applyWriteOff && canWriteOff" class="flex items-baseline justify-between gap-2 ps-4 pe-12 py-3 bg-gray-50">
+									<span class="text-lg font-semibold text-gray-600">{{ __('Write Off') }}</span>
+									<span class="text-2xl font-bold text-gray-900 tabular-nums">{{ formatCurrency(writeOffAmount) }}</span>
 								</div>
 								<!-- Change is ALWAYS in company currency (CHF), even after EUR payments -->
-								<div v-else-if="changeAmount > 0 && allowsOverpayment" :class="['bg-green-50 text-center', isCompactMode ? 'p-2' : 'p-3']">
-									<div class="text-xs font-medium text-green-600 uppercase tracking-wide mb-1">{{ __('Change Due') }}</div>
-									<div :class="['font-bold text-green-600', dynamicTextSize.amount]">{{ formatCurrency(changeAmount) }}</div>
+								<div v-else-if="changeAmount > 0 && allowsOverpayment" class="flex items-baseline justify-between gap-2 ps-4 pe-12 py-3 bg-secondary">
+									<span class="text-lg font-semibold text-white">{{ __('Change Due') }}</span>
+									<span class="text-2xl font-bold text-white tabular-nums">{{ formatCurrency(changeAmount) }}</span>
 								</div>
 								<!-- Exact Amount Warning (when overpayment not allowed) -->
-								<div v-else-if="changeAmount > 0 && !allowsOverpayment" :class="['bg-red-50 text-center', isCompactMode ? 'p-2' : 'p-3']">
-									<div class="text-xs font-medium text-red-600 uppercase tracking-wide mb-1">{{ __('Overpayment') }}</div>
-									<div :class="['font-bold text-red-600', dynamicTextSize.amount]">{{ formatCurrency(changeAmount) }}</div>
+								<div v-else-if="changeAmount > 0 && !allowsOverpayment" class="flex items-baseline justify-between gap-2 ps-4 pe-12 py-3 bg-red-50">
+									<span class="text-lg font-semibold text-red-700">{{ __('Overpayment') }}</span>
+									<span class="text-2xl font-bold text-red-700 tabular-nums">{{ formatCurrency(changeAmount) }}</span>
 								</div>
-								<div v-else :class="['bg-green-50 flex flex-col items-center justify-center', isCompactMode ? 'p-2' : 'p-3']">
-									<svg class="w-5 h-5 text-green-600 mb-1" fill="currentColor" viewBox="0 0 20 20">
-										<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-									</svg>
-									<span :class="['font-bold text-green-600', dynamicTextSize.body]">{{ __('Fully Paid') }}</span>
+								<div v-else class="flex items-baseline justify-between gap-2 ps-4 pe-12 py-3 bg-secondary">
+									<span class="text-lg font-semibold text-white">{{ __('Fully Paid') }}</span>
+									<span class="text-2xl font-bold text-white tabular-nums">{{ formatCurrency(0) }}</span>
 								</div>
 							</div>
-						</div>
 
 						<!-- Write-Off Toggle -->
 						<div v-if="canWriteOff" class="border-t border-gray-200 px-4 py-3 bg-white">
@@ -530,7 +544,7 @@
 									paymentTileStateClass(lastSelectedMethod?.mode_of_payment === method.mode_of_payment)
 								]"
 							>
-								<span class="text-sm sm:text-base font-semibold text-center leading-tight line-clamp-2 break-words">{{ __(method.mode_of_payment) }}</span>
+								<span class="text-base sm:text-lg font-semibold text-center leading-tight line-clamp-2 break-words">{{ __(method.mode_of_payment) }}</span>
 								<!-- EUR rate used for this shift -->
 								<span v-if="isEurMethod(method)" class="text-xs tabular-nums opacity-80">
 									{{ eurRate > 0 ? formatRate(eurRate) : __('No exchange rate') }}
@@ -547,7 +561,7 @@
 								:disabled="remainingAmount === 0 || remainingAvailableCredit === 0"
 								:class="[paymentTileClass, paymentTileStateClass(false)]"
 							>
-								<span class="text-sm sm:text-base font-semibold text-center leading-tight line-clamp-2 break-words">{{ __('Credit Balance') }}</span>
+								<span class="text-base sm:text-lg font-semibold text-center leading-tight line-clamp-2 break-words">{{ __('Credit Balance') }}</span>
 								<span v-if="getMethodTotal('Customer Credit') > 0" class="text-xs font-bold bg-blue-50 text-primary rounded px-1.5 py-0.5">
 									{{ formatCurrency(getMethodTotal('Customer Credit')) }}
 								</span>
@@ -558,10 +572,10 @@
 								@click="clearAll"
 								:class="[
 									isSmallMobile ? 'h-14' : 'h-16',
-									'flex items-center justify-center p-2 rounded-xl border-2 border-red-200 bg-white text-red-600 hover:bg-red-50 active:bg-red-100 touch-manipulation transition-colors duration-75 select-none'
+									'flex items-center justify-center p-2 rounded-xl border-2 border-primary bg-primary text-white hover:bg-primary-hover active:bg-primary-active touch-manipulation transition-colors duration-75 select-none'
 								]"
 							>
-								<span class="text-sm sm:text-base font-semibold text-center leading-tight">{{ __('Clear all payments') }}</span>
+								<span class="text-base sm:text-lg font-semibold text-center leading-tight">{{ __('Clear all payments') }}</span>
 							</button>
 						</div>
 						<div v-else :class="['text-gray-500', isSmallMobile ? 'text-xs' : 'text-sm']">{{ __('No payment methods available') }}</div>
@@ -570,21 +584,15 @@
 						<div v-if="isExactAmountModeActive && paymentEntries.length > 0 && hasNonCashPayment"
 							:class="['mt-2 p-2 rounded-lg border', !isExactAmountValid ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200']">
 							<div class="flex items-center gap-2">
-								<svg v-if="!isExactAmountValid" class="w-4 h-4 flex-shrink-0 text-red-500" fill="currentColor" viewBox="0 0 20 20">
-									<path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
-								</svg>
-								<svg v-else class="w-4 h-4 flex-shrink-0 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-									<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-								</svg>
-								<span :class="['text-xs font-medium', !isExactAmountValid ? 'text-red-700' : 'text-green-700']">
+								<span :class="['text-base font-medium', !isExactAmountValid ? 'text-red-700' : 'text-green-700']">
 									{{ !isExactAmountValid ? __('Total must equal invoice amount') : __('Payment amount is correct') }}
 								</span>
 							</div>
 						</div>
 					</div>
 
-					<div v-if="!lastSelectedMethod && remainingAmount > 0" class="hidden lg:block bg-blue-50 rounded-xl text-center p-2">
-						<p class="text-xs text-blue-600">{{ __('Select a payment method to start') }}</p>
+					<div v-if="!lastSelectedMethod && remainingAmount > 0" class="hidden lg:block bg-gray-100 rounded-xl text-center p-3">
+						<p class="text-base text-gray-700">{{ __('Select a payment method to start') }}</p>
 					</div>
 
 					<!-- Mobile Payment Section - Dynamic & Responsive -->
@@ -647,13 +655,10 @@
 								<button
 									@click="addCustomPayment(lastSelectedMethod, remainingInInputCurrency)"
 									:class="[
-										'font-bold rounded-lg bg-green-500 text-white active:bg-green-600 flex items-center justify-center',
+										'font-bold rounded-lg bg-secondary text-white active:bg-secondary-active flex items-center justify-center',
 										mobileButtonSize.height, mobileButtonSize.text, mobileButtonSize.gap
 									]"
 								>
-									<svg :class="mobileButtonSize.icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
-									</svg>
 									<span class="truncate">{{ formatDisplay(remainingAmount) }}</span>
 								</button>
 								<!-- Pay on Account Button -->
@@ -668,13 +673,6 @@
 										mobileButtonSize.height, mobileButtonSize.text, mobileButtonSize.gap
 									]"
 								>
-									<svg v-if="isSubmitting" :class="mobileButtonSize.icon" class="animate-spin" fill="none" viewBox="0 0 24 24">
-										<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-										<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-									</svg>
-									<svg v-else :class="mobileButtonSize.icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-									</svg>
 									<span class="truncate">{{ isSubmitting ? __('Processing...') : __('On Account') }}</span>
 								</button>
 							</div>
@@ -687,14 +685,11 @@
 								:class="[
 									'w-full font-bold rounded-lg flex items-center justify-center',
 									isSubmitting
-										? 'bg-green-300 text-white cursor-not-allowed'
-										: 'bg-green-500 text-white active:bg-green-600',
+										? 'bg-secondary-disabled text-white cursor-not-allowed'
+										: 'bg-secondary text-white active:bg-secondary-active',
 									mobileButtonSize.height, mobileButtonSize.text, mobileButtonSize.gap
 								]"
 							>
-								<svg :class="mobileButtonSize.icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
-								</svg>
 								<span>{{ __('Pay') }} {{ formatDisplay(remainingAmount) }}</span>
 							</button>
 
@@ -706,132 +701,76 @@
 								:class="[
 									'w-full font-bold rounded-lg flex items-center justify-center',
 									isSubmitting
-										? 'bg-primary opacity-50 text-white cursor-not-allowed'
-										: 'bg-primary text-white hover:bg-primary-hover active:bg-primary-active',
-									mobileButtonSize.height, mobileButtonSize.text, mobileButtonSize.gap
+										? 'bg-secondary-disabled text-white cursor-not-allowed'
+										: 'bg-secondary text-white hover:bg-secondary-hover active:bg-secondary-active',
+									mobileButtonSize.height, 'text-lg'
 								]"
 							>
-								<svg v-if="isSubmitting" :class="mobileButtonSize.icon" class="animate-spin" fill="none" viewBox="0 0 24 24">
-									<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-									<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-								</svg>
-								<svg v-else :class="mobileButtonSize.icon" fill="currentColor" viewBox="0 0 20 20">
-									<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-								</svg>
 								<span>{{ isSubmitting ? __('Processing...') : __('Complete Payment') }}</span>
 							</button>
 						</div>
 					</div>
 					<!-- End Mobile Payment Section -->
 
-					<!-- Numeric Keypad (Desktop only, same look as PriceKeypadDialog) -->
+					<!-- Numeric Keypad (Desktop only, same keypad as the other Brocki dialogs) -->
 					<div class="hidden lg:block select-none">
 						<!-- Amount Display -->
-						<div dir="ltr" :class="['rounded-xl bg-gray-100 px-4 text-end tabular-nums', isCompactMode ? 'py-2 mb-2' : 'py-3 mb-3']">
-							<span class="text-lg font-medium text-gray-500 me-2">{{ inputCurrencySymbol }}</span>
+						<div dir="ltr" class="mb-3 rounded-xl bg-gray-100 dark:bg-gray-800 px-4 py-4 text-end tabular-nums">
+							<span class="text-lg font-medium text-gray-500 dark:text-gray-400 me-2">{{ inputCurrencySymbol }}</span>
 							<span
 								:class="[
-									'font-bold',
-									isCompactMode ? 'text-[32px] leading-none' : 'text-[40px] leading-none',
-									numpadDisplay ? 'text-gray-900' : 'text-gray-400',
+									'text-[40px] leading-none font-bold',
+									numpadDisplay ? 'text-gray-900 dark:text-gray-100' : 'text-gray-400 dark:text-gray-500',
 								]"
 							>{{ numpadDisplay || '0.00' }}</span>
 						</div>
 
-						<div :class="['grid grid-cols-4', isCompactMode ? 'gap-2' : 'gap-3']">
-							<button
-								v-for="key in numpadDigitKeys"
-								:key="key.value"
-								:style="key.style"
-								:disabled="key.value === '.' && numpadDisplay.includes('.')"
-								:class="[
-									dynamicNumpadSize.key,
-									'rounded-xl bg-gray-50 border border-gray-200 text-2xl font-semibold text-gray-900 active:bg-gray-200 disabled:text-gray-300 transition-colors duration-75 touch-manipulation'
-								]"
-								@click="numpadInput(key.value)"
-							>
-								{{ key.value }}
-							</button>
-
-							<button
-								style="grid-column: 4; grid-row: 1"
-								:class="[dynamicNumpadSize.key, 'rounded-xl bg-gray-200 text-gray-700 flex items-center justify-center active:bg-gray-300 transition-colors duration-75 touch-manipulation']"
-								:aria-label="__('Backspace')"
-								@click="numpadBackspace"
-							>
-								<FeatherIcon name="delete" class="w-6 h-6" />
-							</button>
-							<button
-								style="grid-column: 4; grid-row: 2"
-								:class="[dynamicNumpadSize.key, 'rounded-xl bg-gray-200 text-base font-semibold text-gray-700 active:bg-gray-300 transition-colors duration-75 touch-manipulation']"
-								@click="numpadClear"
-							>
-								{{ __('Clear') }}
-							</button>
-							<button
-								style="grid-column: 4; grid-row: 3 / span 2"
-								:disabled="!numpadValue || numpadValue <= 0 || !lastSelectedMethod"
-								class="rounded-xl bg-green-600 text-white text-lg font-bold flex flex-col items-center justify-center gap-1 active:bg-green-700 disabled:bg-gray-200 disabled:text-gray-400 transition-colors duration-75 touch-manipulation"
-								@click="numpadAddPayment"
-							>
-								<FeatherIcon name="check" class="w-7 h-7" />
-								{{ __('Add') }}
-							</button>
-						</div>
+						<NumericKeypad
+							@press="numpadInput"
+							@backspace="numpadBackspace"
+							@clear="numpadClear"
+						>
+							<template #confirm>
+								<button
+									type="button"
+									:disabled="!numpadValue || numpadValue <= 0 || !lastSelectedMethod"
+									class="rounded-xl bg-secondary text-white text-lg font-bold flex flex-col items-center justify-center gap-1 hover:bg-secondary-hover active:bg-secondary-active disabled:bg-gray-200 disabled:text-gray-400 dark:disabled:bg-gray-800 dark:disabled:text-gray-600 transition-colors duration-75 touch-manipulation"
+									@click="numpadAddPayment"
+								>
+									<FeatherIcon name="check" class="w-7 h-7" />
+									{{ __('Add') }}
+								</button>
+							</template>
+						</NumericKeypad>
 					</div>
 
 					<!-- Action Buttons - Below Keypad (Desktop only) -->
-					<div :class="['hidden lg:flex items-center', isCompactMode ? 'gap-2' : 'gap-3']">
+					<div class="hidden lg:flex items-center gap-3">
 						<!-- Pay on Account Button (if credit sales enabled) -->
 						<button
 							v-if="allowCreditSale"
 							@click="addCreditAccountPayment"
 							:disabled="paymentEntries.length > 0 || isSubmitting"
-							:class="[
-								'flex-1 inline-flex items-center justify-center gap-2 transition-colors focus:outline-none',
-								dynamicButtonHeight, 'text-base font-semibold px-4 rounded-xl',
-								paymentEntries.length > 0 || isSubmitting
-									? 'bg-orange-300 text-white cursor-not-allowed'
-									: 'bg-orange-500 text-white hover:bg-orange-600 active:bg-orange-700 focus-visible:ring-2 focus-visible:ring-orange-400'
-							]"
+							class="flex-1 h-16 rounded-xl bg-primary hover:bg-primary-hover active:bg-primary-active disabled:bg-primary-disabled disabled:cursor-not-allowed text-white text-xl font-bold transition-colors duration-75 touch-manipulation"
 						>
-							<svg v-if="isSubmitting" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-								<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-								<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-							</svg>
-							<svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-							</svg>
-							<span>{{ isSubmitting ? __('Processing...') : __('Pay on Account') }}</span>
+							{{ isSubmitting ? __('Processing...') : __('Pay on Account') }}
 						</button>
 
 						<!-- Complete/Partial Payment Button -->
 						<button
 							@click="completePayment"
 							:disabled="!canComplete || isSubmitting"
-							:class="[
-								'flex-1 inline-flex items-center justify-center gap-2 transition-colors focus:outline-none',
-								dynamicButtonHeight, 'text-base font-semibold px-5 rounded-xl',
-								!canComplete || isSubmitting
-									? 'bg-primary opacity-50 text-white cursor-not-allowed'
-									: 'bg-primary text-white hover:bg-primary-hover active:bg-primary-active focus-visible:ring-2 focus-visible:ring-blue-400'
-							]"
+							class="flex-1 h-16 rounded-xl bg-secondary hover:bg-secondary-hover active:bg-secondary-active disabled:bg-secondary-disabled disabled:cursor-not-allowed text-white text-xl font-bold transition-colors duration-75 touch-manipulation"
 						>
-							<svg v-if="isSubmitting" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-								<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-								<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-							</svg>
-							<svg v-else class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-								<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-							</svg>
-							<span>{{ isSubmitting ? __('Processing...') : paymentButtonText }}</span>
+							{{ isSubmitting ? __('Processing...') : paymentButtonText }}
 						</button>
 					</div>
 				</div>
 				<!-- End Right Column -->
 			</div>
 			<!-- End Two Column Layout -->
-			</template>
+			</div>
+		</template>
 	</Dialog>
 
 </template>
@@ -848,6 +787,7 @@ import {
 import { offlineWorker } from "@/utils/offline/workerClient"
 import { logger } from "@/utils/logger"
 import { openCashDrawer } from "@/utils/qzTray"
+import NumericKeypad from "@/components/common/NumericKeypad.vue"
 import { Dialog, FeatherIcon, createResource, call } from "frappe-ui"
 import { computed, ref, watch, nextTick } from "vue"
 import { useToast } from "@/composables/useToast"
@@ -989,10 +929,7 @@ const {
 	isCompactMode,
 	isSmallMobile,
 	dynamicGap,
-	dynamicTextSize,
-	dynamicButtonHeight,
 	mobileButtonSize,
-	dynamicNumpadSize,
 } = useResponsivePayment()
 
 // Payment method tiles share the item selector tile look
@@ -1029,14 +966,6 @@ watch(
 			setTimeout(syncColumnHeights, 100)
 		}
 	},
-)
-
-// Keypad digit layout, matches PriceKeypadDialog
-const numpadDigitKeys = ["7", "8", "9", "4", "5", "6", "1", "2", "3", "00", "0", "."].map(
-	(value, i) => ({
-		value,
-		style: { gridColumn: (i % 3) + 1, gridRow: Math.floor(i / 3) + 1 },
-	}),
 )
 
 // Handle Enter key from numpad keyboard input
@@ -2002,10 +1931,15 @@ function _upsertPaymentEntry(method, amt, foreignAmount = null) {
 
 	// Every payment method with type "Cash" open the drawer automatically
 	if (isCashPaymentMethod(method)) {
-		openCashDrawer().catch((err) =>
-			showError(err?.message || __("Failed to open cash register")),
-		)
+		handleOpenCashDrawer()
 	}
+}
+
+// Open the cash drawer (manual button and automatic on cash payments)
+function handleOpenCashDrawer() {
+	openCashDrawer().catch((err) =>
+		showError(err?.message || __("Failed to open cash register")),
+	)
 }
 
 function _logPayment(modeOfPayment, amt, isCustomerCredit, foreignAmount = null) {
