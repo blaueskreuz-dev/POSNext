@@ -201,9 +201,11 @@
 			<td>{% if invoice_name %}Bon {{ invoice_name }}{% endif %}</td>
 			<td class="right">{{ posting_time }}</td>
 		</tr>
+		{%- if tax_id %}
 		<tr>
-			<td colspan="2" class="right">CHE-223.116.822 MWST</td>
+			<td colspan="2" class="right">{{ tax_id }} MWST</td>
 		</tr>
+		{%- endif %}
 	</table>
 
 	<div class="title">Ihr Einkauf:</div>

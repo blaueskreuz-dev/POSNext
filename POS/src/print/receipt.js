@@ -35,6 +35,7 @@ const pad = (n) => String(n).padStart(2, "0")
  * @param {string} params.posProfile
  * @param {string} params.company
  * @param {Object} [params.address] - { address_line1, pincode, city, phone }
+ * @param {string} [params.taxId] - company VAT number
  * @param {string} params.cashier
  * @param {string} [params.invoiceName] - left empty for offline sales for now
  * @param {Date} [params.date]
@@ -49,6 +50,7 @@ export function buildReceiptContext({
 	posProfile,
 	company,
 	address = null,
+	taxId = null,
 	cashier,
 	invoiceName = null,
 	date = new Date(),
@@ -81,6 +83,7 @@ export function buildReceiptContext({
 		company,
 		cashier,
 		address,
+		taxId,
 		invoiceName,
 		posting: formatPosting({
 			year: date.getFullYear(),
@@ -103,8 +106,9 @@ export function buildReceiptContext({
  * @param {Object} invoice - Sales Invoice as dict, with `cashier` (owner's full name)
  * @param {Object} [options]
  * @param {Object} [options.address] - { address_line1, pincode, city, phone }
+ * @param {string} [options.taxId] - company VAT number
  */
-export function buildReceiptContextFromInvoice(invoice, { address = null } = {}) {
+export function buildReceiptContextFromInvoice(invoice, { address = null, taxId = null } = {}) {
 	const vatTaxes = (invoice.taxes || []).filter((t) => t.charge_type === "On Net Total")
 
 	const lines = (invoice.items || []).map((item) => {
@@ -139,6 +143,7 @@ export function buildReceiptContextFromInvoice(invoice, { address = null } = {})
 		company: invoice.company,
 		cashier: invoice.cashier || invoice.owner,
 		address,
+		taxId,
 		invoiceName: invoice.name,
 		posting: formatServerPosting(invoice.posting_date, invoice.posting_time),
 		grandTotal: invoice.grand_total,
@@ -189,6 +194,7 @@ function assembleContext(lines, meta) {
 		company: meta.posProfile ? meta.company : null,
 		cashier: meta.cashier,
 		address: meta.address,
+		tax_id: meta.taxId,
 		invoice_name: meta.invoiceName,
 		posting_date: meta.posting.date,
 		posting_time: meta.posting.time,

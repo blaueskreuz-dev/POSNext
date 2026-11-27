@@ -5,7 +5,7 @@ import { computed, ref } from "vue"
 
 export const usePOSShiftStore = defineStore("posShift", () => {
 	// Use the existing shift composable
-	const { currentProfile, currentShift, hasOpenShift, checkOpeningShift } =
+	const { currentProfile, currentCompany, currentShift, hasOpenShift, checkOpeningShift } =
 		useShift()
 
 	// Additional shift state
@@ -22,6 +22,7 @@ export const usePOSShiftStore = defineStore("posShift", () => {
 	const profileCompany = computed(() => currentProfile.value?.company)
 	const profileCustomer = computed(() => currentProfile.value?.customer)
 	const profileAddress = computed(() => shiftState.value.company_address)
+	const companyTaxId = computed(() => currentCompany.value?.tax_id)
 	const autoPrintEnabled = computed(
 		() => currentProfile.value?.print_receipt_on_order_complete,
 	)
@@ -107,6 +108,7 @@ export const usePOSShiftStore = defineStore("posShift", () => {
 		profileCompany,
 		profileCustomer,
 		profileAddress,
+		companyTaxId,
 		autoPrintEnabled,
 		writeOffAccount,
 		writeOffCostCenter,

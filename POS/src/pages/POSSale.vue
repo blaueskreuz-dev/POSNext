@@ -1481,6 +1481,7 @@ function buildOfflineReceipt(paymentData) {
 		posProfile: shiftStore.profileName,
 		company: shiftStore.profileCompany,
 		address: shiftStore.profileAddress,
+		taxId: shiftStore.companyTaxId,
 		cashier: userData.getDisplayName(),
 	});
 }
@@ -2166,6 +2167,7 @@ async function printServerInvoice(invoiceData) {
 		});
 		const context = buildReceiptContextFromInvoice(invoice, {
 			address: shiftStore.profileAddress,
+			taxId: shiftStore.companyTaxId,
 		});
 		await printReceipt(context, { silent: posSettingsStore.silentPrint });
 	} catch (error) {
