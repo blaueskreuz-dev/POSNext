@@ -109,6 +109,7 @@ export const usePOSCartStore = defineStore("posCart", () => {
 		recalculateItem,
 		rebuildIncrementalCache,
 		formatItemsForSubmission,
+		taxRatesByGroup,
 	} = useInvoice()
 
 	const offersStore = usePOSOffersStore()
@@ -1724,6 +1725,7 @@ export const usePOSCartStore = defineStore("posCart", () => {
 		payments,
 		salesTeam,
 		additionalDiscount,
+		taxRatesByGroup,
 		pendingItem,
 		pendingItemQty,
 		appliedOffers,

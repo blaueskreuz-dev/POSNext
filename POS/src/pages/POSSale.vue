@@ -1,156 +1,89 @@
 <template>
-	<div
-		class="flex flex-col bg-gray-50 overflow-x-hidden"
-		style="height: 100vh; max-height: 100vh"
-	>
+	<div class="flex flex-col bg-gray-50 overflow-x-hidden" style="height: 100vh; max-height: 100vh">
 		<!-- Loading State -->
 		<LoadingSpinner v-if="uiStore.isLoading" />
 
 		<!-- Main App -->
 		<template v-else>
 			<!-- Header -->
-			<POSHeader
-				:profile-name="shiftStore.profileName"
-				:user-name="userName"
-				:user-image="userImage"
-				:is-offline="offlineStore.isOffline"
-				:is-syncing="offlineStore.isSyncing"
-				:pending-invoices-count="offlineStore.pendingInvoicesCount"
-				:cache-syncing="itemStore.cacheSyncing"
-				:cache-stats="itemStore.cacheStats"
-				:stock-sync-active="isStockSyncActive"
-				:is-refreshing="stockStore.refreshing"
-				@sync-click="handleSyncClick"
-				@clear-cache="handleClearCache"
-				@logout="uiStore.showLogoutDialog = true"
-			>
+			<POSHeader :profile-name="shiftStore.profileName" :user-name="userName" :user-image="userImage"
+				:is-offline="offlineStore.isOffline" :is-syncing="offlineStore.isSyncing"
+				:pending-invoices-count="offlineStore.pendingInvoicesCount" :cache-syncing="itemStore.cacheSyncing"
+				:cache-stats="itemStore.cacheStats" :stock-sync-active="isStockSyncActive"
+				:is-refreshing="stockStore.refreshing" @sync-click="handleSyncClick" @clear-cache="handleClearCache"
+				@logout="uiStore.showLogoutDialog = true">
 				<template #menu-items>
-					<button
-						@click="showPOSSettings = true"
-						class="user-menu-item text-gray-900 hover:bg-gray-100 active:bg-gray-200"
-					>
+					<button @click="showPOSSettings = true"
+						class="user-menu-item text-gray-900 hover:bg-gray-100 active:bg-gray-200">
 						{{ __("Settings") }}
 					</button>
-					<button
-						@click="openCustomerDisplayWindow"
-						class="user-menu-item text-gray-900 hover:bg-gray-100 active:bg-gray-200"
-					>
+					<button @click="openCustomerDisplayWindow"
+						class="user-menu-item text-gray-900 hover:bg-gray-100 active:bg-gray-200">
 						{{ __("Customer Display") }}
 					</button>
-					<button
-						v-if="offlineStore.pendingInvoicesCount > 0"
-						@click="
-							uiStore.showOfflineInvoicesDialog = true;
-							offlineStore.loadPendingInvoices();
-						"
-						class="user-menu-item text-gray-900 hover:bg-gray-100 active:bg-gray-200"
-					>
+					<button v-if="offlineStore.pendingInvoicesCount > 0" @click="
+						uiStore.showOfflineInvoicesDialog = true;
+					offlineStore.loadPendingInvoices();
+					" class="user-menu-item text-gray-900 hover:bg-gray-100 active:bg-gray-200">
 						{{ __("Offline Invoices") }}
 						<span
-							class="ms-auto min-w-8 h-8 px-2 flex items-center justify-center rounded-full bg-orange-600 text-white text-base font-bold"
-						>
+							class="ms-auto min-w-8 h-8 px-2 flex items-center justify-center rounded-full bg-orange-600 text-white text-base font-bold">
 							{{ offlineStore.pendingInvoicesCount }}
 						</span>
 					</button>
-					<button
-						v-if="canAccessShiftActions && canSwitchToDesk"
-						@click="switchToDesk"
-						class="user-menu-item text-gray-900 hover:bg-gray-100 active:bg-gray-200"
-					>
+					<button v-if="canAccessShiftActions && canSwitchToDesk" @click="switchToDesk"
+						class="user-menu-item text-gray-900 hover:bg-gray-100 active:bg-gray-200">
 						{{ __("Switch To Desk") }}
 					</button>
 				</template>
 				<template #additional-actions>
-					<button
-						v-if="canAccessShiftActions"
-						@click="handleCloseShift()"
-						class="user-menu-item text-gray-900 hover:bg-gray-100 active:bg-gray-200"
-					>
+					<button v-if="canAccessShiftActions" @click="handleCloseShift()"
+						class="user-menu-item text-gray-900 hover:bg-gray-100 active:bg-gray-200">
 						{{ __("Close Shift") }}
 					</button>
 				</template>
 			</POSHeader>
 
 			<!-- Main Content: Responsive Layout -->
-			<div
-				v-if="shiftStore.hasOpenShift"
-				class="flex-1 flex overflow-hidden relative"
-				style="max-height: calc(100vh - var(--header-height, 60px))"
-			>
+			<div v-if="shiftStore.hasOpenShift" class="flex-1 flex overflow-hidden relative"
+				style="max-height: calc(100vh - var(--header-height, 60px))">
 				<!-- Main Content Container -->
-				<div
-					ref="containerRef"
-					:class="[
-						'flex-1 overflow-hidden relative',
-						uiStore.isDesktop
-							? 'grid grid-cols-[5fr_2fr] grid-rows-[minmax(0,1fr)_auto]'
-							: 'flex flex-col',
-					]"
-				>
+				<div ref="containerRef" :class="[
+					'flex-1 overflow-hidden relative',
+					uiStore.isDesktop
+						? 'grid grid-cols-[5fr_2fr] grid-rows-[minmax(0,1fr)_auto]'
+						: 'flex flex-col',
+				]">
 					<!-- Mobile Tab Navigation -->
-					<div
-						class="lg:hidden bg-white border-b border-gray-200 flex shadow-sm sticky top-0 z-[100]"
-					>
-						<button
-							@click="handleTabSwitch('items')"
-							:class="[
-								'flex-1 px-3 py-3 text-sm font-semibold transition-[color,background-color,border-color] duration-100 relative touch-manipulation',
-								uiStore.mobileActiveTab === 'items'
-									? 'text-blue-600 border-b-3 border-blue-600 bg-blue-50'
-									: 'text-gray-600 hover:text-gray-800 hover:bg-gray-50 active:bg-gray-100',
-							]"
-							:aria-label="__('View items')"
-							:aria-selected="uiStore.mobileActiveTab === 'items'"
-							role="tab"
-						>
+					<div class="lg:hidden bg-white border-b border-gray-200 flex shadow-sm sticky top-0 z-[100]">
+						<button @click="handleTabSwitch('items')" :class="[
+							'flex-1 px-3 py-3 text-sm font-semibold transition-[color,background-color,border-color] duration-100 relative touch-manipulation',
+							uiStore.mobileActiveTab === 'items'
+								? 'text-blue-600 border-b-3 border-blue-600 bg-blue-50'
+								: 'text-gray-600 hover:text-gray-800 hover:bg-gray-50 active:bg-gray-100',
+						]" :aria-label="__('View items')" :aria-selected="uiStore.mobileActiveTab === 'items'" role="tab">
 							<div class="flex items-center justify-center gap-1.5">
-								<svg
-									class="w-5 h-5"
-									fill="none"
-									stroke="currentColor"
-									viewBox="0 0 24 24"
-								>
-									<path
-										stroke-linecap="round"
-										stroke-linejoin="round"
-										stroke-width="2"
-										d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
-									/>
+								<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+										d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
 								</svg>
 								<span>{{ __("Items") }}</span>
 							</div>
 						</button>
-						<button
-							@click="handleTabSwitch('cart')"
-							:class="[
-								'flex-1 px-3 py-3 text-sm font-semibold transition-[color,background-color,border-color] duration-100 relative touch-manipulation',
-								uiStore.mobileActiveTab === 'cart'
-									? 'text-blue-600 border-b-3 border-blue-600 bg-blue-50'
-									: 'text-gray-600 hover:text-gray-800 hover:bg-gray-50 active:bg-gray-100',
-							]"
-							:aria-label="__('View cart')"
-							:aria-selected="uiStore.mobileActiveTab === 'cart'"
-							role="tab"
-						>
+						<button @click="handleTabSwitch('cart')" :class="[
+							'flex-1 px-3 py-3 text-sm font-semibold transition-[color,background-color,border-color] duration-100 relative touch-manipulation',
+							uiStore.mobileActiveTab === 'cart'
+								? 'text-blue-600 border-b-3 border-blue-600 bg-blue-50'
+								: 'text-gray-600 hover:text-gray-800 hover:bg-gray-50 active:bg-gray-100',
+						]" :aria-label="__('View cart')" :aria-selected="uiStore.mobileActiveTab === 'cart'" role="tab">
 							<div class="flex items-center justify-center gap-1.5">
-								<svg
-									class="w-5 h-5"
-									fill="none"
-									stroke="currentColor"
-									viewBox="0 0 24 24"
-								>
-									<path
-										stroke-linecap="round"
-										stroke-linejoin="round"
-										stroke-width="2"
-										d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
-									/>
+								<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+										d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
 								</svg>
 								<span>{{ __("Cart") }}</span>
-								<span
-									v-if="cartStore.itemCount > 0"
-									class="bg-blue-600 text-white text-[10px] font-bold rounded-full min-w-[20px] h-5 px-1.5 flex items-center justify-center shadow-sm"
-								>
+								<span v-if="cartStore.itemCount > 0"
+									class="bg-blue-600 text-white text-[10px] font-bold rounded-full min-w-[20px] h-5 px-1.5 flex items-center justify-center shadow-sm">
 									{{ cartStore.itemCount }}
 								</span>
 							</div>
@@ -159,102 +92,60 @@
 
 					<!-- Items Selector (Desktop: below the cart) / Tab Content (Mobile) -->
 					<keep-alive>
-						<div
-							v-if="uiStore.isDesktop || uiStore.mobileActiveTab === 'items'"
-							:class="[
-								'flex flex-col bg-white overflow-hidden w-full',
-								uiStore.isDesktop
-									? 'col-start-1 row-start-2 max-h-[50vh] border-t border-gray-200'
-									: 'flex-1',
-							]"
-							style="contain: layout style paint"
-						>
-							<ItemsSelector
-								ref="itemsSelectorRef"
-								:pos-profile="shiftStore.profileName"
-								:cart-items="cartStore.invoiceItems"
-								:currency="shiftStore.profileCurrency"
-								@item-selected="handleItemSelected"
-							/>
+						<div v-if="uiStore.isDesktop || uiStore.mobileActiveTab === 'items'" :class="[
+							'flex flex-col bg-white overflow-hidden w-full',
+							uiStore.isDesktop
+								? 'col-start-1 row-start-2 max-h-[50vh] border-t border-gray-200'
+								: 'flex-1',
+						]" style="contain: layout style paint">
+							<ItemsSelector ref="itemsSelectorRef" :pos-profile="shiftStore.profileName"
+								:cart-items="cartStore.invoiceItems" :currency="shiftStore.profileCurrency"
+								@item-selected="handleItemSelected" />
 						</div>
 					</keep-alive>
 
 					<!-- Invoice Cart (Desktop: top left) / Tab Content (Mobile) -->
 					<keep-alive>
-						<div
-							v-if="uiStore.isDesktop || uiStore.mobileActiveTab === 'cart'"
-							:class="[
-								'flex flex-col bg-gray-50 overflow-hidden',
-								uiStore.isDesktop ? 'col-start-1 row-start-1 min-h-0' : 'flex-1',
-							]"
-							style="min-width: 300px; contain: layout style paint"
-						>
-							<InvoiceCart
-								:items="cartStore.invoiceItems"
-								:customer="cartStore.customer"
-								:pos-profile="shiftStore.profileName"
-								:currency="shiftStore.profileCurrency"
-								@update-quantity="cartStore.updateItemQuantity"
-								@remove-item="cartStore.removeItem"
-								@select-customer="handleCustomerSelected"
-								@create-customer="handleCreateCustomer"
-								@proceed-to-payment="handleProceedToPayment"
-								@update-uom="cartStore.changeItemUOM"
-								@edit-item="handleEditItem"
-							/>
+						<div v-if="uiStore.isDesktop || uiStore.mobileActiveTab === 'cart'" :class="[
+							'flex flex-col bg-gray-50 overflow-hidden',
+							uiStore.isDesktop ? 'col-start-1 row-start-1 min-h-0' : 'flex-1',
+						]" style="min-width: 300px; contain: layout style paint">
+							<InvoiceCart :items="cartStore.invoiceItems" :customer="cartStore.customer"
+								:pos-profile="shiftStore.profileName" :currency="shiftStore.profileCurrency"
+								@update-quantity="cartStore.updateItemQuantity" @remove-item="cartStore.removeItem"
+								@select-customer="handleCustomerSelected" @create-customer="handleCreateCustomer"
+								@proceed-to-payment="handleProceedToPayment" @update-uom="cartStore.changeItemUOM"
+								@edit-item="handleEditItem" />
 						</div>
 					</keep-alive>
 
 					<!-- Action panel (Desktop): right column spanning cart and items -->
-					<ActionPanel
-						v-if="uiStore.isDesktop"
-						class="col-start-2 row-start-1 row-span-2 min-w-0"
-						:cart-empty="cartStore.isEmpty"
-						:discount-percentage="cartStore.cartDiscountPercentage"
-						:items="cartStore.invoiceItems"
-						:subtotal="cartStore.subtotal"
-						:tax-amount="cartStore.totalTax"
-						:discount-amount="cartStore.totalDiscount"
-						:currency="shiftStore.profileCurrency"
-						@clear-cart="handleClearCart"
-						@save-draft="handleSaveDraft"
-						@show-drafts="openDraftDialog"
+					<ActionPanel v-if="uiStore.isDesktop" class="col-start-2 row-start-1 row-span-2 min-w-0"
+						:cart-empty="cartStore.isEmpty" :discount-percentage="cartStore.cartDiscountPercentage"
+						:items="cartStore.invoiceItems" :subtotal="cartStore.subtotal" :tax-amount="cartStore.totalTax"
+						:discount-amount="cartStore.totalDiscount" :currency="shiftStore.profileCurrency"
+						@clear-cart="handleClearCart" @save-draft="handleSaveDraft" @show-drafts="openDraftDialog"
 						@show-discount="uiStore.showCartDiscountDialog = true"
-						@remove-discount="cartStore.clearCartDiscount"
-						@show-return="openReturnDialog"
-						@show-history="openHistoryDialog"
-						@reprint-last="handleReprintLastInvoice"
-						@checkout="handleProceedToPayment"
-					/>
+						@remove-discount="cartStore.clearCartDiscount" @show-return="openReturnDialog"
+						@show-history="openHistoryDialog" @reprint-last="handleReprintLastInvoice"
+						@checkout="handleProceedToPayment" />
 
 					<!-- Mobile Floating Cart Button -->
-					<button
-						v-if="
-							!uiStore.isDesktop &&
-							uiStore.mobileActiveTab === 'items' &&
-							cartStore.itemCount > 0
-						"
-						@click="uiStore.setMobileTab('cart')"
+					<button v-if="
+						!uiStore.isDesktop &&
+						uiStore.mobileActiveTab === 'items' &&
+						cartStore.itemCount > 0
+					" @click="uiStore.setMobileTab('cart')"
 						class="lg:hidden fixed bottom-20 end-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-full p-4 shadow-2xl hover:shadow-3xl hover:from-blue-700 hover:to-blue-800 active:from-blue-800 active:to-blue-900 transition-[background,box-shadow,transform] duration-200 z-50 touch-manipulation active:scale-95 ring-4 ring-blue-100"
-						:aria-label="__('View cart with {0} items', [cartStore.itemCount])"
-					>
+						:aria-label="__('View cart with {0} items', [cartStore.itemCount])">
 						<div class="relative">
-							<svg
-								class="w-7 h-7"
-								fill="none"
-								stroke="currentColor"
-								viewBox="0 0 24 24"
-								stroke-width="2.5"
-							>
-								<path
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
-								/>
+							<svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+								stroke-width="2.5">
+								<path stroke-linecap="round" stroke-linejoin="round"
+									d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
 							</svg>
 							<span
-								class="absolute -top-2 -end-2 bg-red-500 text-white text-xs font-bold rounded-full min-w-[22px] h-[22px] px-1 flex items-center justify-center shadow-lg animate-pulse"
-							>
+								class="absolute -top-2 -end-2 bg-red-500 text-white text-xs font-bold rounded-full min-w-[22px] h-[22px] px-1 flex items-center justify-center shadow-lg animate-pulse">
 								{{ cartStore.itemCount }}
 							</span>
 						</div>
@@ -266,236 +157,135 @@
 			</div>
 
 			<!-- No Shift Placeholder -->
-			<div
-				v-else
-				class="flex-1 flex items-center justify-center bg-gray-50 dark:bg-gray-950 p-4"
-				style="max-height: calc(100vh - var(--header-height, 60px))"
-			>
-				<div class="w-full max-w-md rounded-2xl bg-white dark:bg-gray-900 px-8 py-10 flex flex-col items-center text-center select-none">
+			<div v-else class="flex-1 flex items-center justify-center bg-gray-50 dark:bg-gray-950 p-4"
+				style="max-height: calc(100vh - var(--header-height, 60px))">
+				<div
+					class="w-full max-w-md rounded-2xl bg-white dark:bg-gray-900 px-8 py-10 flex flex-col items-center text-center select-none">
 					<div class="rounded-lg bg-white px-3 py-2">
-						<img
-							:src="blauesKreuzLogo"
-							alt="Blaues Kreuz Schweiz"
-							class="h-20 w-auto"
-							draggable="false"
-						/>
+						<img :src="blauesKreuzLogo" alt="Blaues Kreuz Schweiz" class="h-20 w-auto" draggable="false" />
 					</div>
 					<h3 class="mt-8 text-3xl font-bold text-gray-900 dark:text-gray-100">
 						{{ __("Welcome to Brocki POS") }}
 					</h3>
-					<button
-						type="button"
+					<button type="button"
 						class="mt-8 h-20 w-full rounded-xl bg-primary hover:bg-primary-hover active:bg-primary-active text-white text-2xl font-bold flex items-center justify-center shadow-lg transition-colors duration-75 touch-manipulation"
-						@click="uiStore.showOpenShiftDialog = true"
-					>
+						@click="uiStore.showOpenShiftDialog = true">
 						{{ __("Open Shift") }}
 					</button>
 				</div>
 			</div>
 
 			<!-- Payment Dialog -->
-		<PaymentDialog
-			v-model="uiStore.showPaymentDialog"
-			:grand-total="cartStore.grandTotal"
-			:subtotal="cartStore.subtotal"
-			:pos-profile="shiftStore.profileName"
-			:currency="shiftStore.profileCurrency"
-			:is-offline="offlineStore.isOffline"
-			:allow-partial-payment="posSettingsStore.allowPartialPayment"
-			:allow-credit-sale="posSettingsStore.allowCreditSale"
-			:allow-customer-credit-payment="posSettingsStore.allowCustomerCreditPayment"
-			:allow-write-off="posSettingsStore.allowWriteOffChange"
-			:write-off-limit="shiftStore.writeOffLimit"
-			:customer="cartStore.customer"
-			:company="shiftStore.profileCompany"
-			:additional-discount="cartStore.additionalDiscount"
-			:items="cartStore.invoiceItems"
-			:tax-amount="cartStore.totalTax"
-			:discount-amount="cartStore.totalDiscount"
-			:target-doctype="cartStore.targetDoctype"
-			:is-submitting="cartStore.isSubmitting"
-			@payment-completed="handlePaymentCompleted"
-			@update-additional-discount="handleAdditionalDiscountUpdate"
-		/>
+			<PaymentDialog v-model="uiStore.showPaymentDialog" :grand-total="cartStore.grandTotal"
+				:subtotal="cartStore.subtotal" :pos-profile="shiftStore.profileName"
+				:currency="shiftStore.profileCurrency" :is-offline="offlineStore.isOffline"
+				:allow-partial-payment="posSettingsStore.allowPartialPayment"
+				:allow-credit-sale="posSettingsStore.allowCreditSale"
+				:allow-customer-credit-payment="posSettingsStore.allowCustomerCreditPayment"
+				:allow-write-off="posSettingsStore.allowWriteOffChange" :write-off-limit="shiftStore.writeOffLimit"
+				:customer="cartStore.customer" :company="shiftStore.profileCompany"
+				:additional-discount="cartStore.additionalDiscount" :items="cartStore.invoiceItems"
+				:tax-amount="cartStore.totalTax" :discount-amount="cartStore.totalDiscount"
+				:target-doctype="cartStore.targetDoctype" :is-submitting="cartStore.isSubmitting"
+				@payment-completed="handlePaymentCompleted"
+				@update-additional-discount="handleAdditionalDiscountUpdate" />
 
 			<!-- Customer Selection Dialog -->
-			<CustomerDialog
-				v-model="uiStore.showCustomerDialog"
-				:pos-profile="shiftStore.profileName"
-				@customer-selected="handleCustomerSelected"
-			/>
+			<CustomerDialog v-model="uiStore.showCustomerDialog" :pos-profile="shiftStore.profileName"
+				@customer-selected="handleCustomerSelected" />
 
 			<!-- Shift Opening Dialog -->
-			<ShiftOpeningDialog
-				v-model="uiStore.showOpenShiftDialog"
-				@shift-opened="handleShiftOpened"
-			/>
+			<ShiftOpeningDialog v-model="uiStore.showOpenShiftDialog" @shift-opened="handleShiftOpened" />
 
 			<!-- Shift Closing Dialog -->
-			<ShiftClosingDialog
-				v-model="uiStore.showCloseShiftDialog"
-				:opening-shift="shiftStore.currentShift?.name"
-				@shift-closed="handleShiftClosed"
-			/>
+			<ShiftClosingDialog v-model="uiStore.showCloseShiftDialog" :opening-shift="shiftStore.currentShift?.name"
+				@shift-closed="handleShiftClosed" />
 
 			<!-- Draft Invoices Dialog -->
-			<DraftInvoicesDialog
-				v-model="uiStore.showDraftDialog"
-				:currency="shiftStore.profileCurrency"
-				:allow-print-draft-invoices="posSettingsStore.allowPrintDraftInvoices"
-				@load-draft="handleLoadDraft"
-				@drafts-updated="draftsStore.updateDraftsCount"
-			/>
+			<DraftInvoicesDialog v-model="uiStore.showDraftDialog" :currency="shiftStore.profileCurrency"
+				:allow-print-draft-invoices="posSettingsStore.allowPrintDraftInvoices" @load-draft="handleLoadDraft"
+				@drafts-updated="draftsStore.updateDraftsCount" />
 
 			<!-- Return Invoice Dialog -->
-			<ReturnInvoiceDialog
-				v-model="uiStore.showReturnDialog"
-				:pos-profile="shiftStore.profileName"
-				:pos-opening-shift="shiftStore.currentShift?.name"
-				:currency="shiftStore.profileCurrency"
-				@return-created="handleReturnCreated"
-			/>
+			<ReturnInvoiceDialog v-model="uiStore.showReturnDialog" :pos-profile="shiftStore.profileName"
+				:pos-opening-shift="shiftStore.currentShift?.name" :currency="shiftStore.profileCurrency"
+				@return-created="handleReturnCreated" />
 
 			<!-- Cart Discount Dialog -->
-			<CartDiscountDialog
-				v-model="uiStore.showCartDiscountDialog"
-				:current-percentage="cartStore.cartDiscountPercentage"
-				@apply="cartStore.setCartDiscountPercentage"
-			/>
+			<CartDiscountDialog v-model="uiStore.showCartDiscountDialog"
+				:current-percentage="cartStore.cartDiscountPercentage" @apply="cartStore.setCartDiscountPercentage" />
 
 			<!-- Offers Dialog -->
-			<OffersDialog
-				ref="offersDialogRef"
-				v-model="uiStore.showOffersDialog"
-				:subtotal="cartStore.subtotal"
-				:items="cartStore.invoiceItems"
-				:pos-profile="shiftStore.profileName"
-				:customer="cartStore.customer?.name || cartStore.customer"
-				:company="shiftStore.profileCompany"
-				:currency="shiftStore.profileCurrency"
-				:applied-offers="cartStore.appliedOffers"
-				@apply-offer="handleApplyOffer"
-				@remove-offer="
+			<OffersDialog ref="offersDialogRef" v-model="uiStore.showOffersDialog" :subtotal="cartStore.subtotal"
+				:items="cartStore.invoiceItems" :pos-profile="shiftStore.profileName"
+				:customer="cartStore.customer?.name || cartStore.customer" :company="shiftStore.profileCompany"
+				:currency="shiftStore.profileCurrency" :applied-offers="cartStore.appliedOffers"
+				@apply-offer="handleApplyOffer" @remove-offer="
 					(offer) =>
 						cartStore.removeOffer(
 							offer,
 							shiftStore.currentProfile,
 							offersDialogRef.value
 						)
-				"
-			/>
+				" />
 
-			<PriceKeypadDialog
-				v-model="uiStore.showPriceKeypad"
-				:item="priceKeypadItem"
-				@confirm="handlePriceEntered"
-			/>
+			<PriceKeypadDialog v-model="uiStore.showPriceKeypad" :item="priceKeypadItem"
+				@confirm="handlePriceEntered" />
 
 			<!-- Batch/Serial Dialog -->
-			<BatchSerialDialog
-				v-model="uiStore.showBatchSerialDialog"
-				:item="cartStore.pendingItem"
-				:quantity="cartStore.pendingItemQty"
-				:warehouse="shiftStore.profileWarehouse"
-				:pos-profile="cartStore.posProfile"
-				@batch-serial-selected="handleBatchSerialSelected"
-			/>
+			<BatchSerialDialog v-model="uiStore.showBatchSerialDialog" :item="cartStore.pendingItem"
+				:quantity="cartStore.pendingItemQty" :warehouse="shiftStore.profileWarehouse"
+				:pos-profile="cartStore.posProfile" @batch-serial-selected="handleBatchSerialSelected" />
 
 			<!-- Generic Item Selection Dialog -->
-			<ItemSelectionDialog
-				v-model="uiStore.showItemSelectionDialog"
-				:item="cartStore.pendingItem"
-				:mode="cartStore.selectionMode"
-				:pos-profile="shiftStore.profileName"
-				:currency="shiftStore.profileCurrency"
-				@option-selected="handleOptionSelected"
-			/>
+			<ItemSelectionDialog v-model="uiStore.showItemSelectionDialog" :item="cartStore.pendingItem"
+				:mode="cartStore.selectionMode" :pos-profile="shiftStore.profileName"
+				:currency="shiftStore.profileCurrency" @option-selected="handleOptionSelected" />
 
 			<!-- Invoice History Dialog -->
-			<InvoiceHistoryDialog
-				v-model="uiStore.showHistoryDialog"
-				:pos-profile="shiftStore.profileName"
-				:pos-opening-shift="shiftStore.currentShift?.name"
-				:currency="shiftStore.profileCurrency"
-				@view-invoice="handleViewInvoice"
-				@print-invoice="handlePrintInvoice"
-				@return-created="handleReturnCreated"
-			/>
+			<InvoiceHistoryDialog v-model="uiStore.showHistoryDialog" :pos-profile="shiftStore.profileName"
+				:pos-opening-shift="shiftStore.currentShift?.name" :currency="shiftStore.profileCurrency"
+				@view-invoice="handleViewInvoice" @print-invoice="handlePrintInvoice"
+				@return-created="handleReturnCreated" />
 
 			<!-- Offline Invoices Dialog -->
-			<OfflineInvoicesDialog
-				v-model="uiStore.showOfflineInvoicesDialog"
-				:is-offline="offlineStore.isOffline"
-				:pending-invoices="offlineStore.pendingInvoicesList"
-				:is-syncing="offlineStore.isSyncing"
-				:currency="shiftStore.profileCurrency"
-				@sync-all="handleSyncAll"
-				@delete-invoice="handleDeleteOfflineInvoice"
-				@edit-invoice="handleEditOfflineInvoice"
-				@refresh="offlineStore.loadPendingInvoices"
-			/>
+			<OfflineInvoicesDialog v-model="uiStore.showOfflineInvoicesDialog" :is-offline="offlineStore.isOffline"
+				:pending-invoices="offlineStore.pendingInvoicesList" :is-syncing="offlineStore.isSyncing"
+				:currency="shiftStore.profileCurrency" @sync-all="handleSyncAll"
+				@delete-invoice="handleDeleteOfflineInvoice" @edit-invoice="handleEditOfflineInvoice"
+				@refresh="offlineStore.loadPendingInvoices" />
 
 			<!-- Create/Edit Customer Dialog -->
-			<CreateCustomerDialog
-				v-model="uiStore.showCreateCustomerDialog"
-				:pos-profile="shiftStore.profileName"
-				:initial-name="uiStore.initialCustomerName"
-				:customer="editCustomer"
-				@customer-created="handleCustomerCreated"
-				@customer-updated="handleCustomerUpdated"
-			/>
+			<CreateCustomerDialog v-model="uiStore.showCreateCustomerDialog" :pos-profile="shiftStore.profileName"
+				:initial-name="uiStore.initialCustomerName" :customer="editCustomer"
+				@customer-created="handleCustomerCreated" @customer-updated="handleCustomerUpdated" />
 
 			<!-- Promotion Management -->
-			<PromotionManagement
-				v-model="showPromotionManagement"
-				:pos-profile="shiftStore.profileName"
-				:company="shiftStore.profileCompany"
-				:currency="shiftStore.profileCurrency"
-				@promotion-saved="handlePromotionSaved"
-			/>
+			<PromotionManagement v-model="showPromotionManagement" :pos-profile="shiftStore.profileName"
+				:company="shiftStore.profileCompany" :currency="shiftStore.profileCurrency"
+				@promotion-saved="handlePromotionSaved" />
 
 			<!-- POS Settings -->
-			<POSSettings
-				v-model="showPOSSettings"
-				:pos-profile="shiftStore.profileName"
-			/>
+			<POSSettings v-model="showPOSSettings" :pos-profile="shiftStore.profileName" />
 
 			<!-- Stock Lookup Dialog (Products Menu) -->
-			<WarehouseAvailabilityDialog
-				v-model="showStockLookup"
-				mode="search"
-				:pos-profile="shiftStore.profileName"
-				:company="shiftStore.profileCompany"
-			/>
+			<WarehouseAvailabilityDialog v-model="showStockLookup" mode="search" :pos-profile="shiftStore.profileName"
+				:company="shiftStore.profileCompany" />
 
 			<!-- Invoice Management -->
-			<InvoiceManagement
-				v-model="showInvoiceManagement"
-				:pos-profile="shiftStore.profileName"
-				:currency="shiftStore.profileCurrency"
-				:history-invoices="invoiceHistoryData"
-				:draft-invoices="draftsStore.drafts"
-				@view-invoice="handleViewInvoice"
-				@print-invoice="handlePrintInvoice"
-				@load-draft="handleLoadDraftFromManagement"
-				@delete-draft="handleDeleteDraft"
-				@refresh-history="loadInvoiceHistoryData"
-			/>
+			<InvoiceManagement v-model="showInvoiceManagement" :pos-profile="shiftStore.profileName"
+				:currency="shiftStore.profileCurrency" :history-invoices="invoiceHistoryData"
+				:draft-invoices="draftsStore.drafts" @view-invoice="handleViewInvoice"
+				@print-invoice="handlePrintInvoice" @load-draft="handleLoadDraftFromManagement"
+				@delete-draft="handleDeleteDraft" @refresh-history="loadInvoiceHistoryData" />
 
 			<!-- Invoice Detail Dialog -->
-			<InvoiceDetailDialog
-				v-model="showInvoiceDetail"
-				:invoice-name="selectedInvoiceForView"
-				:pos-profile="shiftStore.profileName"
-				:currency="shiftStore.profileCurrency"
-				@print-invoice="handlePrintInvoice"
-			/>
+			<InvoiceDetailDialog v-model="showInvoiceDetail" :invoice-name="selectedInvoiceForView"
+				:pos-profile="shiftStore.profileName" :currency="shiftStore.profileCurrency"
+				@print-invoice="handlePrintInvoice" />
 
 			<!-- Clear Cart Confirmation Dialog -->
-			<Dialog disable-outside-click-to-close
-				v-model="uiStore.showClearCartDialog"
-				:options="{ size: 'md' }"
-			>
+			<Dialog disable-outside-click-to-close v-model="uiStore.showClearCartDialog" :options="{ size: 'md' }">
 				<template #body>
 					<div class="bg-white dark:bg-gray-900 p-5 select-none text-start">
 						<h3 class="mb-4 text-2xl font-bold text-gray-900 dark:text-gray-100">
@@ -505,18 +295,14 @@
 							{{ __("Remove all {0} items from cart?", [cartStore.itemCount]) }}
 						</p>
 						<div class="grid grid-cols-2 gap-3">
-							<button
-								type="button"
+							<button type="button"
 								class="h-20 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-xl font-semibold hover:bg-gray-200 active:bg-gray-300 dark:hover:bg-gray-700 dark:active:bg-gray-600 transition-colors duration-75 touch-manipulation"
-								@click="uiStore.showClearCartDialog = false"
-							>
+								@click="uiStore.showClearCartDialog = false">
 								{{ __("Cancel") }}
 							</button>
-							<button
-								type="button"
+							<button type="button"
 								class="h-20 rounded-xl bg-red-600 hover:bg-red-700 active:bg-red-800 text-white text-xl font-bold shadow-lg transition-colors duration-75 touch-manipulation"
-								@click="confirmClearCart"
-							>
+								@click="confirmClearCart">
 								{{ __("Clear All") }}
 							</button>
 						</div>
@@ -525,11 +311,8 @@
 			</Dialog>
 
 			<!-- Logout Confirmation Dialog (same look as the clear cart dialog) -->
-			<Dialog disable-outside-click-to-close
-				v-model="uiStore.showLogoutDialog"
-				:options="{ size: 'md' }"
-				:dismissable="!session.logout.loading"
-			>
+			<Dialog disable-outside-click-to-close v-model="uiStore.showLogoutDialog" :options="{ size: 'md' }"
+				:dismissable="!session.logout.loading">
 				<template #body>
 					<div class="bg-white dark:bg-gray-900 p-5 select-none text-start">
 						<h3 class="mb-4 text-2xl font-bold text-gray-900 dark:text-gray-100">
@@ -543,33 +326,24 @@
 							}}
 						</p>
 
-						<button
-							v-if="shiftStore.hasOpenShift"
-							type="button"
-							:disabled="session.logout.loading"
+						<button v-if="shiftStore.hasOpenShift" type="button" :disabled="session.logout.loading"
 							class="mb-3 w-full h-20 rounded-xl bg-primary hover:bg-primary-hover active:bg-primary-active disabled:bg-primary-disabled disabled:shadow-none text-white text-xl font-bold shadow-lg transition-colors duration-75 touch-manipulation"
-							@click="logoutWithCloseShift"
-						>
+							@click="logoutWithCloseShift">
 							{{ __("Close Shift & Sign Out") }}
 						</button>
 
 						<div class="grid grid-cols-2 gap-3">
-							<button
-								type="button"
-								:disabled="session.logout.loading"
+							<button type="button" :disabled="session.logout.loading"
 								class="h-20 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-xl font-semibold hover:bg-gray-200 active:bg-gray-300 dark:hover:bg-gray-700 dark:active:bg-gray-600 disabled:opacity-50 transition-colors duration-75 touch-manipulation"
-								@click="uiStore.showLogoutDialog = false"
-							>
+								@click="uiStore.showLogoutDialog = false">
 								{{ __("Cancel") }}
 							</button>
-							<button
-								type="button"
-								:disabled="session.logout.loading"
+							<button type="button" :disabled="session.logout.loading"
 								class="h-20 rounded-xl bg-primary hover:bg-primary-hover active:bg-primary-active disabled:bg-primary-disabled disabled:shadow-none text-white text-xl font-bold shadow-lg transition-colors duration-75 touch-manipulation"
-								@click="confirmLogout"
-							>
+								@click="confirmLogout">
 								<template v-if="session.logout.loading">{{ __("Signing Out...") }}</template>
-								<template v-else>{{ shiftStore.hasOpenShift ? __("Skip & Sign Out") : __("Sign Out") }}</template>
+								<template v-else>{{ shiftStore.hasOpenShift ? __("Skip & Sign Out") : __("Sign Out")
+									}}</template>
 							</button>
 						</div>
 					</div>
@@ -577,27 +351,14 @@
 			</Dialog>
 
 			<!-- Success Dialog -->
-			<Dialog disable-outside-click-to-close
-				v-model="uiStore.showSuccessDialog"
-				:options="{ title: __('Invoice Created Successfully'), size: 'md' }"
-			>
+			<Dialog disable-outside-click-to-close v-model="uiStore.showSuccessDialog"
+				:options="{ title: __('Invoice Created Successfully'), size: 'md' }">
 				<template #body-content>
 					<div class="text-center py-6">
-						<div
-							class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100"
-						>
-							<svg
-								class="h-6 w-6 text-green-600"
-								fill="none"
-								stroke="currentColor"
-								viewBox="0 0 24 24"
-							>
-								<path
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									stroke-width="2"
-									d="M5 13l4 4L19 7"
-								/>
+						<div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
+							<svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+									d="M5 13l4 4L19 7" />
 							</svg>
 						</div>
 						<h3 class="mt-4 text-lg font-medium text-gray-900">
@@ -615,16 +376,12 @@
 						<Button variant="subtle" @click="uiStore.showSuccessDialog = false">
 							{{ __("Close") }}
 						</Button>
-						<Button
-							variant="solid"
-							theme="blue"
-							@click="
-								() => {
-									handlePrintInvoice({ name: uiStore.lastInvoiceName });
-									uiStore.showSuccessDialog = false;
-								}
-							"
-						>
+						<Button variant="solid" theme="blue" @click="
+							() => {
+								handlePrintInvoice({ name: uiStore.lastInvoiceName });
+								uiStore.showSuccessDialog = false;
+							}
+						">
 							{{ __("Print Invoice") }}
 						</Button>
 					</div>
@@ -632,34 +389,24 @@
 			</Dialog>
 
 			<!-- Error Dialog -->
-			<Dialog disable-outside-click-to-close
-				v-model="uiStore.showErrorDialog"
-				:options="{ title: uiStore.errorDialogTitle || __('Error'), size: 'md' }"
-			>
+			<Dialog disable-outside-click-to-close v-model="uiStore.showErrorDialog"
+				:options="{ title: uiStore.errorDialogTitle || __('Error'), size: 'md' }">
 				<template #body-content>
 					<div class="py-3">
 						<p class="text-sm text-gray-700 whitespace-pre-line">
 							{{ uiStore.errorDialogMessage || __("An unexpected error occurred.") }}
 						</p>
-						<div
-							v-if="uiStore.errorDetails"
-							class="mt-3 pt-3 border-t border-gray-200"
-						>
+						<div v-if="uiStore.errorDetails" class="mt-3 pt-3 border-t border-gray-200">
 							<p class="text-xs text-gray-500">{{ uiStore.errorDetails }}</p>
 						</div>
 					</div>
 				</template>
 				<template #actions>
 					<div class="flex justify-between items-center w-full">
-						<Button
-							v-if="
-								uiStore.errorRetryAction === 'sync' &&
-								uiStore.errorRetryActionData?.failedInvoiceId
-							"
-							variant="outline"
-							theme="red"
-							@click="handleDeleteFailedInvoice"
-						>
+						<Button v-if="
+							uiStore.errorRetryAction === 'sync' &&
+							uiStore.errorRetryActionData?.failedInvoiceId
+						" variant="outline" theme="red" @click="handleDeleteFailedInvoice">
 							{{ __("Delete Invoice") }}
 						</Button>
 						<div v-else></div>
@@ -667,11 +414,7 @@
 							<Button variant="subtle" @click="uiStore.clearError()">
 								{{ __("Close") }}
 							</Button>
-							<Button
-								v-if="uiStore.errorRetryAction"
-								variant="solid"
-								@click="handleErrorRetry"
-							>
+							<Button v-if="uiStore.errorRetryAction" variant="solid" @click="handleErrorRetry">
 								{{ __("Try Again") }}
 							</Button>
 						</div>
@@ -680,12 +423,8 @@
 			</Dialog>
 
 			<!-- Clear Cache Overlay -->
-			<ClearCacheOverlay
-				ref="clearCacheOverlayRef"
-				:show="showClearCacheDialog"
-				@cancel="showClearCacheDialog = false"
-				@confirm="confirmClearCache"
-			/>
+			<ClearCacheOverlay ref="clearCacheOverlayRef" :show="showClearCacheDialog"
+				@cancel="showClearCacheDialog = false" @confirm="confirmClearCache" />
 		</template>
 
 		<!-- Session Lock Screen (outside v-if/v-else so it renders even during loading) -->
@@ -741,6 +480,8 @@ import { cleanupUserSession } from "@/utils/sessionCleanup";
 import { offlineWorker } from "@/utils/offline/workerClient";
 import { cacheInvoiceHistory, getCachedInvoiceHistory } from "@/utils/offline/sync";
 import { printInvoice, printInvoiceByName, printWithSilentFallback } from "@/utils/printInvoice";
+import { buildReceiptContext, printReceipt } from "@/print/receipt";
+import { userData } from "@/data/user";
 import { qzConnected, connect as qzConnect, disconnect as qzDisconnect } from "@/utils/qzTray";
 
 import { Button, Dialog, createResource } from "frappe-ui";
@@ -832,8 +573,7 @@ function computeCartHash() {
 	return cartStore.invoiceItems
 		.map(
 			(i) =>
-				`${i.item_code}-${i.quantity}-${i.rate}-${i.discount_percentage || 0}-${
-					i.discount_amount || 0
+				`${i.item_code}-${i.quantity}-${i.rate}-${i.discount_percentage || 0}-${i.discount_amount || 0
 				}-${i.uom || ""}-${i.warehouse || ""}`
 		)
 		.join("|");
@@ -1225,9 +965,8 @@ watch(
 		// Create signature from item codes to detect catalog changes even with same count
 		const signature =
 			count > 0
-				? `${items[0]?.item_code || ""}-${items[Math.floor(count / 2)]?.item_code || ""}-${
-						items[count - 1]?.item_code || ""
-				  }`
+				? `${items[0]?.item_code || ""}-${items[Math.floor(count / 2)]?.item_code || ""}-${items[count - 1]?.item_code || ""
+				}`
 				: "";
 
 		return { count, warehouse, signature };
@@ -1273,7 +1012,7 @@ onUnmounted(() => {
 	stopResize();
 
 	// Stop periodic stock sync on unmount
-	offlineWorker.stopStockSync().catch(() => {});
+	offlineWorker.stopStockSync().catch(() => { });
 });
 
 // ============================================================================
@@ -1710,6 +1449,23 @@ async function handlePaymentCompleted(paymentData) {
 			};
 
 			await offlineStore.saveInvoiceOffline(invoiceData);
+
+			// Override the last saved offline invoice with the new reciept context.
+			// This is used for reprint invoice which works locally instead of getting the invoice
+			// from the server via the invoice number
+			lastOfflineReceipt.value = buildReceiptContext({
+				items: cartStore.invoiceItems,
+				taxRatesByGroup: cartStore.taxRatesByGroup,
+				payments: cartStore.payments,
+				grandTotal: cartStore.grandTotal,
+				changeAmount: paymentData.change_amount,
+				outstandingAmount: paymentData.outstanding_amount,
+				posProfile: shiftStore.profileName,
+				company: shiftStore.profileCompany,
+				address: shiftStore.profileAddress,
+				cashier: userData.getDisplayName(),
+			});
+
 			uiStore.showSuccess(
 				`OFFLINE-${Date.now()}`,
 				cartStore.grandTotal,
@@ -1726,6 +1482,10 @@ async function handlePaymentCompleted(paymentData) {
 			}
 
 			showSuccess(__("Invoice saved offline. Will sync when online"));
+
+			if (shiftStore.autoPrintEnabled || posSettingsStore.silentPrint) {
+				await printLastOfflineReceipt();
+			}
 		} else {
 			// Get item codes from cart before clearing
 			const soldItemCodes = cartStore.invoiceItems.map((item) => item.item_code);
@@ -2399,8 +2159,31 @@ function handleViewInvoice(invoice) {
 	showInvoiceDetail.value = true;
 }
 
-// Centralized print handler - uses printInvoice.js utilities
+const lastOfflineReceipt = ref(null);
+
+async function printLastOfflineReceipt() {
+	if (!lastOfflineReceipt.value) {
+		showWarning(__("No invoice to reprint"));
+		return;
+	}
+	const result = await printReceipt(
+		lastOfflineReceipt.value,
+		{ silent: posSettingsStore.silentPrint }
+	);
+}
+
+// Centralized print handler
 async function handlePrintInvoice(invoiceData) {
+	// Offline sales have no server document yet, print the local receipt
+	if (invoiceData?.name?.startsWith("OFFLINE-")) {
+		await printLastOfflineReceipt();
+	} else {
+		await printServerInvoice(invoiceData);
+	}
+}
+
+// Print a synced invoice through the server print format (printInvoice.js utilities)
+async function printServerInvoice(invoiceData) {
 	try {
 		// Silent print path — send directly to thermal printer via QZ Tray
 		if (posSettingsStore.silentPrint) {
@@ -2438,13 +2221,23 @@ async function handlePrintInvoice(invoiceData) {
  * to prevent reprint issues on offline states getting back online or page reloads
  */
 async function handleReprintLastInvoice() {
-	// TODO: We probably have to change this up because the whole print process will be
-	// moved to offline functionality
 	if (offlineStore.isOffline) {
-		showWarning(__("Reprint is not available while offline"));
-		return;
+		await reprintLastOfflineInvoice();
+	} else {
+		await reprintLastServerInvoice();
 	}
+}
 
+// Reprint the locally rendered receipt, if the last sale was made offline
+async function reprintLastOfflineInvoice() {
+	if (uiStore.lastInvoiceName?.startsWith("OFFLINE-") && lastOfflineReceipt.value) {
+		await printLastOfflineReceipt();
+	} else {
+		showWarning(__("Reprint is not available while offline"));
+	}
+}
+
+async function reprintLastServerInvoice() {
 	let name = uiStore.lastInvoiceName;
 
 	// Try to load offline invoice synced later via the server

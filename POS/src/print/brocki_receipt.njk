@@ -1,0 +1,309 @@
+<style>
+	@page {
+		size: 80mm auto;
+		margin: 0mm;
+	}
+
+	.brocki-receipt {
+		font-family: 'DejaVu Sans Mono', 'Consolas', 'Courier New', monospace;
+		width: 80mm;
+		box-sizing: border-box;
+		margin: 0 auto;
+		padding: 4mm 3mm;
+		font-size: 11px;
+		line-height: 1.35;
+		color: #000;
+	}
+
+	.brocki-receipt .center {
+		text-align: center;
+	}
+
+	.brocki-receipt .right {
+		text-align: right;
+	}
+
+	.brocki-receipt .shop-name {
+		font-size: 20px;
+		font-weight: bold;
+		letter-spacing: 0.5px;
+	}
+
+	.brocki-receipt .company-name {
+		font-size: 13px;
+	}
+
+	.brocki-receipt .register-name {
+		font-size: 13px;
+		font-weight: bold;
+		margin: 4px 0 14px;
+	}
+
+	.brocki-receipt .address {
+		margin-bottom: 6px;
+	}
+
+	.brocki-receipt .title {
+		font-size: 18px;
+		font-weight: bold;
+		letter-spacing: 2px;
+		text-align: center;
+		margin: 10px 0 12px;
+	}
+
+	.brocki-receipt .line-double {
+		border-top: 3px double #000;
+		margin: 4px 0;
+	}
+
+	.brocki-receipt .line-dashed {
+		border-top: 1px dashed #000;
+		margin: 4px 0;
+	}
+
+	.brocki-receipt .gap {
+		height: 12px;
+	}
+
+	.brocki-receipt table {
+		width: 100%;
+		border-collapse: collapse;
+		font-size: 11px;
+	}
+
+	.brocki-receipt td,
+	.brocki-receipt th {
+		padding: 1px 0;
+		vertical-align: top;
+		font-weight: normal;
+	}
+
+	.brocki-receipt table.items {
+		table-layout: fixed;
+	}
+
+	.brocki-receipt .col-qty-rate {
+		width: 21mm;
+		text-align: right;
+		white-space: nowrap;
+	}
+
+	.brocki-receipt .items th {
+		vertical-align: bottom;
+	}
+
+	.brocki-receipt .col-gross {
+		width: 17mm;
+		text-align: right;
+	}
+
+	.brocki-receipt .col-code {
+		width: 5mm;
+		text-align: right;
+	}
+
+	.brocki-receipt .items th,
+	.brocki-receipt .vat th {
+		border-bottom: 1px dashed #000;
+		padding-bottom: 3px;
+	}
+
+	.brocki-receipt .vat td,
+	.brocki-receipt .vat th {
+		text-align: right;
+	}
+
+	.brocki-receipt .vat td:first-child,
+	.brocki-receipt .vat th:first-child {
+		text-align: left;
+	}
+
+	.brocki-receipt .section-title {
+		font-weight: bold;
+		margin: 12px 0 4px;
+	}
+
+	.brocki-receipt .items td {
+		padding: 2px 0 0;
+	}
+
+	.brocki-receipt .items td:first-child {
+		padding-right: 2mm;
+		word-break: break-word;
+	}
+
+	.brocki-receipt .items .discount td {
+		padding: 0 0 2px;
+	}
+
+	.brocki-receipt .items .discount td:first-child {
+		padding-left: 3mm;
+	}
+
+	.brocki-receipt .bold {
+		font-weight: bold;
+	}
+
+	.brocki-receipt .big {
+		font-size: 13px;
+	}
+
+	.brocki-receipt .footer {
+		text-align: center;
+		margin-top: 6px;
+		font-size: 9px;
+	}
+
+	.brocki-receipt .footer .no-exchange,
+	.brocki-receipt .footer .no-warranty {
+		font-size: 13px;
+		font-weight: bold;
+		letter-spacing: 1px;
+		margin-top: 2px;
+	}
+</style>
+
+{#-
+	Offline port of docs/print_formats/brocki_receipt.html.
+	Everything the Jinja version looked up on the server (address, cashier,
+	VAT rates) is precomputed by buildReceiptContext() in receipt.js.
+-#}
+<div class="brocki-receipt">
+	<div class="center shop-name">{{ shop_name }}</div>
+	{%- if company %}
+	<div class="center company-name">{{ company }}</div>
+	{%- endif %}
+	<div class="center register-name">{{ cashier }}</div>
+
+	{%- if address %}
+	<div class="center address">
+		{%- if address.address_line1 %}{{ address.address_line1 }}<br>{% endif -%}
+		{%- if address.pincode or address.city %}{{ address.pincode or "" }} {{ address.city or "" }}<br>{% endif -%}
+		{%- if address.phone %}{{ address.phone }}{% endif -%}
+	</div>
+	{%- endif %}
+
+	<div class="line-double"></div>
+
+	<table>
+		<tr>
+			<td>{{ cashier }}</td>
+			<td class="right">{{ posting_date }}</td>
+		</tr>
+		<tr>
+			<td>{% if invoice_name %}Bon {{ invoice_name }}{% endif %}</td>
+			<td class="right">{{ posting_time }}</td>
+		</tr>
+		<tr>
+			<td colspan="2" class="right">CHE-223.116.822 MWST</td>
+		</tr>
+	</table>
+
+	<div class="title">Ihr Einkauf:</div>
+
+	<table class="items">
+		<tr>
+			<th style="text-align: left;">Artikel</th>
+			<th class="col-qty-rate">Anzahl /<br>Einzelpreis</th>
+			<th class="col-gross">Brutto</th>
+			<th class="col-code"></th>
+		</tr>
+		{%- for item in items %}
+		<tr>
+			<td>{{ item.name }}</td>
+			<td class="col-qty-rate">{{ item.qty | num }} x {{ item.unit_price | money }}</td>
+			<td class="col-gross">{{ item.gross | money }}</td>
+			<td class="col-code">{{ item.vat_code }}</td>
+		</tr>
+		{%- if item.discount | abs >= 0.005 %}
+		<tr class="discount">
+			<td colspan="2">
+				{%- if item.discount_percentage -%}
+				Rabatt {{ item.discount_percentage | num }}%
+				{%- else -%}
+				Rabatt {{ item.discount_per_unit | money }}/Stk
+				{%- endif -%}
+			</td>
+			<td class="col-gross">-{{ item.discount | money }}</td>
+			<td class="col-code"></td>
+		</tr>
+		{%- endif %}
+		{%- endfor %}
+	</table>
+	<div class="line-dashed"></div>
+
+	<table>
+		<tr>
+			<td>Total Brutto</td>
+			<td class="right">{{ total_gross | money }}</td>
+		</tr>
+		{%- if total_discount | abs >= 0.005 %}
+		<tr>
+			<td>Total Rabatt</td>
+			<td class="right">-{{ total_discount | money }}</td>
+		</tr>
+		{%- endif %}
+	</table>
+
+	<div class="gap"></div>
+	<div class="line-dashed"></div>
+	<table>
+		<tr class="bold big">
+			<td>Total in CHF</td>
+			<td class="right">{{ grand_total | money }}</td>
+		</tr>
+	</table>
+	<div class="line-double"></div>
+
+	<table>
+		{%- for p in payments %}
+		{%- if p.amount | abs >= 0.005 %}
+		<tr>
+			<td>{{ p.mode_of_payment }}</td>
+			<td class="right">{{ p.amount | money }}</td>
+		</tr>
+		{%- endif %}
+		{%- endfor %}
+		{%- if change_amount >= 0.005 %}
+		<tr>
+			<td>Retourgeld</td>
+			<td class="right">{{ change_amount | money }}</td>
+		</tr>
+		{%- endif %}
+		{%- if outstanding_amount >= 0.005 %}
+		<tr class="bold">
+			<td>Offen</td>
+			<td class="right">{{ outstanding_amount | money }}</td>
+		</tr>
+		{%- endif %}
+	</table>
+
+	{%- if vat_rows.length %}
+	<div class="section-title">MWST-Aufschlüsselung:</div>
+	<table class="vat">
+		<tr>
+			<th>Code</th>
+			<th>Satz</th>
+			<th>Netto</th>
+			<th>MWST</th>
+			<th>Brutto</th>
+		</tr>
+		{%- for row in vat_rows %}
+		<tr>
+			<td>{{ row.code }}</td>
+			<td>{{ row.rate | num }}%</td>
+			<td>{{ row.net | money }}</td>
+			<td>{{ row.tax | money }}</td>
+			<td>{{ row.gross | money }}</td>
+		</tr>
+		{%- endfor %}
+	</table>
+	<div class="line-dashed"></div>
+	{%- endif %}
+
+	<div class="footer">
+		<div>Herzlichen Dank fuer Ihren Besuch.</div>
+		<div class="no-exchange">KEIN UMTAUSCH</div>
+		<div class="no-warranty">KEINE GARANTIE</div>
+	</div>
+</div>
