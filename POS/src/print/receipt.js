@@ -11,8 +11,15 @@ import nunjucks from "nunjucks/browser/nunjucks.min.js"
 import { logger } from "@/utils/logger"
 import { printHTML as qzPrintHTML } from "@/utils/qzTray"
 import receiptTemplate from "./brocki_receipt.njk?raw"
+import logoSvg from "@/assets/blaues-kreuz-logo.svg?raw"
 
 const log = logger.create("Receipt")
+
+// Inlined as a data URI so it prints offline and inside QZ Tray (no asset request).
+// Thermal printers dither the brand blue, so the logo is printed in solid black.
+const LOGO_DATA_URI = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(
+	logoSvg.replace(/#005ca8/gi, "#000"),
+)}`
 
 const env = new nunjucks.Environment(null, { autoescape: true })
 env.addFilter("money", (value) => (Number(value) || 0).toFixed(2))
@@ -122,7 +129,7 @@ export function buildReceiptContext({
 
 /** Render a receipt context to a complete HTML document. */
 export function renderReceiptHTML(context) {
-	const body = compiledReceipt.render(context)
+	const body = compiledReceipt.render({ logo: LOGO_DATA_URI, ...context })
 	return `<!DOCTYPE html>
 <html>
 <head><meta charset="UTF-8"><title>Beleg</title><style>body { margin: 0; }</style></head>
