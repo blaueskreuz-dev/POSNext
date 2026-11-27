@@ -43,9 +43,55 @@ function posNextBuildVersionPlugin(version) {
 	}
 }
 
+/**
+ * Dev-only offline mock: simulates the Frappe server being unreachable,
+ * switchable mid-session from any browser tab.
+ *
+ *   http://localhost:8080/__offline/on   -> drop all backend requests
+ *   http://localhost:8080/__offline/off  -> back to normal
+ *   http://localhost:8080/__offline      -> current state
+ *
+ * The app itself is still served by Vite; only backend requests fail with a
+ * network error, so the POS detects "offline" through its normal ping.
+ */
+function devOfflineMockPlugin() {
+	let offline = false
+	const BACKEND = /^\/(app|api|assets|files|printview|socket\.io)(\/|\?|$)/
+
+	return {
+		name: "pos-next-dev-offline-mock",
+		apply: "serve",
+		configureServer(server) {
+			// Registered directly (not returned), so it runs before Vite's proxy
+			server.middlewares.use((req, res, next) => {
+				const match = req.url.match(/^\/__offline(?:\/(on|off))?\/?$/)
+				if (match) {
+					if (match[1]) offline = match[1] === "on"
+					server.config.logger.info(`[offline-mock] backend ${offline ? "OFFLINE" : "online"}`)
+					res.setHeader("Content-Type", "text/plain")
+					res.end(`backend is ${offline ? "OFFLINE" : "online"}\n`)
+					return
+				}
+				// Destroying the socket makes fetch reject like a real network failure
+				if (offline && BACKEND.test(req.url)) {
+					req.socket.destroy()
+					return
+				}
+				next()
+			})
+
+			// Websocket upgrades (socket.io) bypass the middlewares
+			server.httpServer?.prependListener("upgrade", (req, socket) => {
+				if (offline && BACKEND.test(req.url)) socket.destroy()
+			})
+		},
+	}
+}
+
 // https://vitejs.dev/config/
 export default defineConfig({
 	plugins: [
+		devOfflineMockPlugin(),
 		posNextBuildVersionPlugin(buildVersion),
 		frappeui({
 			frappeProxy: true,

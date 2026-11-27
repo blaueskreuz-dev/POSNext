@@ -9,7 +9,7 @@ It provides a simplified POS interface for all Blaues Kreuz Brockis.
 - `main` is the default branch. All customizations happen here, and pull requests target it.
 - `develop` mirrors upstream POSNext and is never committed to directly.
 
-The fork does not follow upstream `develop`. It is its own interface on top of the POSNext API, based on upstream release `v1.16.0`.
+The fork does not follow upstream `develop`. It is its own interface on top of the POSNext API, based on upstream release `v1.16.0`. Updating/maintaining this as a fork to get upstream updates doesn't make sense anymore, too much things have been removed or added for it. Any sort of security patches, dependency updates and so on are done on it's own.
 
 ## Development Setup
 
@@ -26,6 +26,20 @@ yarn dev
 ```
 
 Open http://localhost:8080/pos and log in with your erp-test account.
+
+#### Offline State Development
+
+This app supports offline capabilities like invoice syncs and offline prints in case the internet goes out or the server crashes during a busy day. To test sudden issues with the server connection during development you can use:
+
+| URL | Effect |
+|---|---|
+| http://localhost:8080/__offline/on | Server unreachable |
+| http://localhost:8080/__offline/off | Server reachable again |
+| http://localhost:8080/__offline | Shows the current state |
+
+How it works: the dev server forwards all server requests (`/api`, `/app`, `/assets`, `/files`, `/printview`, `/socket.io`) to erp-test. While offline is on, it closes the connection of every such request instead of forwarding it. The app itself is still served by the dev server, so only the server is "gone".
+
+The POS does not know about the mock. It checks the connection by calling `pos_next.api.ping` every 30 seconds and switches to offline after 2 failed pings, so it can take up to a minute until the POS shows offline. Switching back works the same way.
 
 ## Customer Display
 
