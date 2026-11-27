@@ -173,9 +173,9 @@
 </style>
 
 {#-
-	Offline port of docs/print_formats/brocki_receipt.html.
-	Everything the Jinja version looked up on the server (address, cashier,
-	VAT rates) is precomputed by buildReceiptContext() in receipt.js.
+	The only receipt format, printed in the browser online and offline.
+	All values (address, cashier, VAT codes and table) are precomputed by
+	the builders in receipt.js; the template only formats.
 -#}
 <div class="brocki-receipt">
 	{%- if logo %}

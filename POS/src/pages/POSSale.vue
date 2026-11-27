@@ -479,8 +479,7 @@ import { parseError } from "@/utils/errorHandler";
 import { cleanupUserSession } from "@/utils/sessionCleanup";
 import { offlineWorker } from "@/utils/offline/workerClient";
 import { cacheInvoiceHistory, getCachedInvoiceHistory } from "@/utils/offline/sync";
-import { printInvoice, printInvoiceByName, printWithSilentFallback } from "@/utils/printInvoice";
-import { buildReceiptContext, printReceipt } from "@/print/receipt";
+import { buildReceiptContext, buildReceiptContextFromInvoice, printReceipt } from "@/print/receipt";
 import { userData } from "@/data/user";
 import { qzConnected, connect as qzConnect, disconnect as qzDisconnect } from "@/utils/qzTray";
 
@@ -1388,168 +1387,146 @@ async function handleErrorRetry() {
 }
 
 async function handlePaymentCompleted(paymentData) {
+	const customer = cartStore.customer?.name || cartStore.customer || shiftStore.profileCustomer;
+	if (!customer) {
+		showWarning(__("Please select a customer before proceeding"));
+		uiStore.showPaymentDialog = false;
+		uiStore.showCustomerDialog = true;
+		return;
+	}
+
 	try {
-		const customerValue = cartStore.customer?.name || cartStore.customer;
-		if (!customerValue && !shiftStore.profileCustomer) {
-			showWarning(__("Please select a customer before proceeding"));
-			uiStore.showPaymentDialog = false;
-			uiStore.showCustomerDialog = true;
-			return;
-		}
-
-		cartStore.payments = [];
-		if (paymentData.payments && Array.isArray(paymentData.payments)) {
-			paymentData.payments.forEach((p) => {
-				cartStore.payments.push({
-					...p,
-					mode_of_payment: p.mode_of_payment,
-					amount: p.amount,
-					type: p.type,
-				});
-			});
-		}
-
-		// Store sales team data if provided
-		if (paymentData.sales_team && Array.isArray(paymentData.sales_team)) {
-			cartStore.salesTeam = paymentData.sales_team;
-		} else {
-			cartStore.salesTeam = [];
-		}
-
-		// Set delivery date for Sales Orders
-		if (paymentData.delivery_date) {
-			cartStore.setDeliveryDate(paymentData.delivery_date);
-		}
-
-		// Set write-off amount if provided
-		if (paymentData.write_off_amount && paymentData.write_off_amount > 0) {
-			cartStore.setWriteOffAmount(paymentData.write_off_amount);
-		}
-
-		// Delete draft if it exists (since we're submitting/saving invoice)
-		const draftIdToDelete = cartStore.currentDraftId;
+		applyPaymentToCart(paymentData);
+		const draftId = cartStore.currentDraftId;
 
 		if (offlineStore.isOffline) {
-			// Use the same item transformation as online flow for consistency
-			// This ensures rate, discount_percentage, discount_amount, and pricing_rules
-			// are all correctly formatted for ERPNext
-			const preparedItems = cartStore.formatItemsForSubmission(cartStore.invoiceItems);
-
-			const invoiceData = {
-				pos_profile: cartStore.posProfile,
-				posa_pos_opening_shift: cartStore.posOpeningShift,
-				customer: customerValue || shiftStore.profileCustomer,
-				items: preparedItems,
-				payments: JSON.parse(JSON.stringify(cartStore.payments)),
-				sales_team: JSON.parse(JSON.stringify(cartStore.salesTeam || [])),
-				grand_total: cartStore.grandTotal,
-				total_tax: cartStore.totalTax,
-				total_discount: cartStore.totalDiscount,
-				write_off_amount: paymentData.write_off_amount || 0,
-			};
-
-			await offlineStore.saveInvoiceOffline(invoiceData);
-
-			// Override the last saved offline invoice with the new reciept context.
-			// This is used for reprint invoice which works locally instead of getting the invoice
-			// from the server via the invoice number
-			lastOfflineReceipt.value = buildReceiptContext({
-				items: cartStore.invoiceItems,
-				taxRatesByGroup: cartStore.taxRatesByGroup,
-				payments: cartStore.payments,
-				grandTotal: cartStore.grandTotal,
-				changeAmount: paymentData.change_amount,
-				outstandingAmount: paymentData.outstanding_amount,
-				posProfile: shiftStore.profileName,
-				company: shiftStore.profileCompany,
-				address: shiftStore.profileAddress,
-				cashier: userData.getDisplayName(),
-			});
-
-			uiStore.showSuccess(
-				`OFFLINE-${Date.now()}`,
-				cartStore.grandTotal,
-				paymentData.paid_amount
-			);
-			uiStore.showPaymentDialog = false;
-			cartStore.clearCart();
-			// Reset cart hash after successful payment
-			previousCartHash = "";
-
-			// Delete draft after successful save
-			if (draftIdToDelete) {
-				draftsStore.deleteDraft(draftIdToDelete);
-			}
-
-			showSuccess(__("Invoice saved offline. Will sync when online"));
-
-			if (shiftStore.autoPrintEnabled || posSettingsStore.silentPrint) {
-				await printLastOfflineReceipt();
-			}
+			await completeOfflineSale(paymentData, customer, draftId);
 		} else {
-			// Get item codes from cart before clearing
-			const soldItemCodes = cartStore.invoiceItems.map((item) => item.item_code);
-
-			const result = await cartStore.submitInvoice();
-
-			if (result) {
-				const invoiceName = result.name || result.message?.name || __("Unknown");
-				const invoiceTotal = result.grand_total || result.total || 0;
-				const paidAmount = paymentData.paid_amount || invoiceTotal;
-				// Remember for reprinting Invoice
-				uiStore.lastInvoiceName = invoiceName;
-
-				uiStore.showPaymentDialog = false;
-				cartStore.clearCart();
-				// Reset cart hash after successful payment
-				previousCartHash = "";
-
-				// Delete draft after successful submission
-				if (draftIdToDelete) {
-					draftsStore.deleteDraft(draftIdToDelete);
-				}
-
-				// Refresh stock - Direct API (50-200ms), no Socket.IO lag!
-				await stockStore.refresh(soldItemCodes, shiftStore.profileWarehouse);
-
-				// Refresh invoice history cache in background (non-blocking)
-				loadInvoiceHistoryData().catch((err) =>
-					log.debug("Background invoice cache refresh failed:", err)
-				);
-
-				if (shiftStore.autoPrintEnabled || posSettingsStore.silentPrint) {
-					try {
-						await handlePrintInvoice({ name: invoiceName });
-						showSuccess(__("Invoice {0} created and sent to printer", [invoiceName]));
-					} catch (error) {
-						log.error("Auto-print error:", error);
-						showWarning(__("Invoice {0} created but print failed", [invoiceName]));
-					}
-				} else {
-					uiStore.showSuccess(invoiceName, invoiceTotal, paidAmount);
-					showSuccess(__("Invoice {0} created successfully", [invoiceName]));
-				}
-			}
+			await completeOnlineSale(paymentData, draftId);
 		}
 	} catch (error) {
-		log.error("Error submitting invoice:", error);
-		uiStore.showPaymentDialog = false;
+		showPaymentError(error);
+	}
+}
 
-		const errorContext = parseError(error);
-		uiStore.showError(
-			errorContext.title || __("Error"),
-			errorContext.message || __("An unexpected error occurred"),
-			errorContext.technicalDetails || null,
-			errorContext.retryable ? "payment" : null
-		);
+function applyPaymentToCart(paymentData) {
+	cartStore.payments = Array.isArray(paymentData.payments)
+		? paymentData.payments.map((p) => ({ ...p }))
+		: [];
+	cartStore.salesTeam = Array.isArray(paymentData.sales_team) ? paymentData.sales_team : [];
 
-		if (errorContext.type === "error") {
-			showError(errorContext.message);
-		} else if (errorContext.type === "warning") {
-			showWarning(errorContext.message);
-		} else {
-			showWarning(errorContext.message);
-		}
+	if (paymentData.delivery_date) {
+		cartStore.setDeliveryDate(paymentData.delivery_date);
+	}
+	if (paymentData.write_off_amount > 0) {
+		cartStore.setWriteOffAmount(paymentData.write_off_amount);
+	}
+}
+
+const shouldAutoPrint = () => shiftStore.autoPrintEnabled || posSettingsStore.silentPrint;
+
+function resetAfterSale(draftId) {
+	uiStore.showPaymentDialog = false;
+	cartStore.clearCart();
+	previousCartHash = "";
+	if (draftId) {
+		draftsStore.deleteDraft(draftId);
+	}
+}
+
+async function completeOfflineSale(paymentData, customer, draftId) {
+	await offlineStore.saveInvoiceOffline(buildOfflineInvoice(paymentData, customer));
+
+	// The receipt has to be built before the cart is cleared. It is kept for
+	// printing and reprinting, since there is no server invoice to load yet.
+	lastOfflineReceipt.value = buildOfflineReceipt(paymentData);
+
+	const name = `OFFLINE-${Date.now()}`;
+	const total = cartStore.grandTotal;
+	uiStore.lastInvoiceName = name;
+	resetAfterSale(draftId);
+
+	showSuccess(__("Invoice saved offline. Will sync when online"));
+
+	if (shouldAutoPrint()) {
+		await printLastOfflineReceipt();
+	} else {
+		uiStore.showSuccess(name, total, paymentData.paid_amount);
+	}
+}
+
+// Same item format as the online submit, so the sync sends what ERPNext expects
+function buildOfflineInvoice(paymentData, customer) {
+	return {
+		pos_profile: cartStore.posProfile,
+		posa_pos_opening_shift: cartStore.posOpeningShift,
+		customer,
+		items: cartStore.formatItemsForSubmission(cartStore.invoiceItems),
+		payments: JSON.parse(JSON.stringify(cartStore.payments)),
+		sales_team: JSON.parse(JSON.stringify(cartStore.salesTeam || [])),
+		grand_total: cartStore.grandTotal,
+		total_tax: cartStore.totalTax,
+		total_discount: cartStore.totalDiscount,
+		write_off_amount: paymentData.write_off_amount || 0,
+	};
+}
+
+function buildOfflineReceipt(paymentData) {
+	return buildReceiptContext({
+		items: cartStore.invoiceItems,
+		taxRatesByGroup: cartStore.taxRatesByGroup,
+		payments: cartStore.payments,
+		grandTotal: cartStore.grandTotal,
+		changeAmount: paymentData.change_amount,
+		outstandingAmount: paymentData.outstanding_amount,
+		posProfile: shiftStore.profileName,
+		company: shiftStore.profileCompany,
+		address: shiftStore.profileAddress,
+		cashier: userData.getDisplayName(),
+	});
+}
+
+async function completeOnlineSale(paymentData, draftId) {
+	const soldItemCodes = cartStore.invoiceItems.map((item) => item.item_code);
+
+	const result = await cartStore.submitInvoice();
+	if (!result) return;
+
+	const name = result.name || result.message?.name || __("Unknown");
+	const total = result.grand_total || result.total || 0;
+	uiStore.lastInvoiceName = name;
+	resetAfterSale(draftId);
+
+	await stockStore.refresh(soldItemCodes, shiftStore.profileWarehouse);
+	loadInvoiceHistoryData().catch((err) =>
+		log.debug("Background invoice cache refresh failed:", err)
+	);
+
+	if (shouldAutoPrint()) {
+		await handlePrintInvoice({ name });
+		showSuccess(__("Invoice {0} created and sent to printer", [name]));
+	} else {
+		uiStore.showSuccess(name, total, paymentData.paid_amount || total);
+		showSuccess(__("Invoice {0} created successfully", [name]));
+	}
+}
+
+function showPaymentError(error) {
+	log.error("Error submitting invoice:", error);
+	uiStore.showPaymentDialog = false;
+
+	const errorContext = parseError(error);
+	uiStore.showError(
+		errorContext.title || __("Error"),
+		errorContext.message || __("An unexpected error occurred"),
+		errorContext.technicalDetails || null,
+		errorContext.retryable ? "payment" : null
+	);
+
+	if (errorContext.type === "error") {
+		showError(errorContext.message);
+	} else {
+		showWarning(errorContext.message);
 	}
 }
 
@@ -2182,36 +2159,19 @@ async function handlePrintInvoice(invoiceData) {
 	}
 }
 
-// Print a synced invoice through the server print format (printInvoice.js utilities)
+// Print a submitted invoice: load it from the server and render the receipt locally
 async function printServerInvoice(invoiceData) {
 	try {
-		// Silent print path — send directly to thermal printer via QZ Tray
-		if (posSettingsStore.silentPrint) {
-			const result = await printWithSilentFallback({
-				pos_profile: shiftStore.profileName,
-				...invoiceData,
-			});
-			if (result.method === "browser") {
-				log.info("Used browser print fallback");
-			}
-			return;
-		}
-
-		// Standard browser print path
-		if (invoiceData.items && Array.isArray(invoiceData.items)) {
-			await printInvoice(invoiceData);
-		} else {
-			// If it's just an invoice object with name, fetch and print
-			// printInvoiceByName will automatically fetch the print format from the invoice's POS Profile
-			await printInvoiceByName(invoiceData.name);
-		}
+		const invoice = await call("pos_next.api.invoices.get_invoice", {
+			invoice_name: invoiceData.name,
+		});
+		const context = buildReceiptContextFromInvoice(invoice, {
+			address: shiftStore.profileAddress,
+		});
+		await printReceipt(context, { silent: posSettingsStore.silentPrint });
 	} catch (error) {
 		log.error("Error printing invoice:", error);
-		window.frappe?.msgprint({
-			title: "Error",
-			message: "Failed to print invoice",
-			indicator: "red",
-		});
+		showError(__("Failed to print invoice"));
 	}
 }
 

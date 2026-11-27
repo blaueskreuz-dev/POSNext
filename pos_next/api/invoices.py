@@ -1529,7 +1529,9 @@ def get_invoice(invoice_name):
 	# Get invoice document
 	invoice = frappe.get_doc("Sales Invoice", invoice_name)
 
-	return invoice.as_dict()
+	data = invoice.as_dict()
+	data["cashier"] = frappe.db.get_value("User", invoice.owner, "full_name") or invoice.owner
+	return data
 
 
 @frappe.whitelist()
