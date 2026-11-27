@@ -1,12 +1,6 @@
 /**
- * Receipt rendering. All receipts are rendered and printed in the browser with
- * brocki_receipt.njk, online and offline; there is no server print format.
- *
- * The template only formats. Its data comes from one of two builders:
- * - buildReceiptContext(): from the cart, for sales saved offline (no invoice
- *   number yet, the server assigns it on sync)
- * - buildReceiptContextFromInvoice(): from a submitted Sales Invoice, so the
- *   receipt shows exactly what ERPNext booked
+ * All receipts are rendered and printed in the browser with
+ * brocki_receipt.njk
  */
 import nunjucks from "nunjucks/browser/nunjucks.min.js"
 import { logger } from "@/utils/logger"
@@ -15,16 +9,12 @@ import receiptTemplate from "./brocki_receipt.njk?raw"
 import logoSvg from "@/assets/blaues-kreuz-logo.svg?raw"
 
 const log = logger.create("Receipt")
-
-// Inlined as a data URI so it prints offline and inside QZ Tray (no asset request).
-// Thermal printers dither the brand blue, so the logo is printed in solid black.
 const LOGO_DATA_URI = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(
 	logoSvg.replace(/#005ca8/gi, "#000"),
 )}`
 
 const env = new nunjucks.Environment(null, { autoescape: true })
 env.addFilter("money", (value) => (Number(value) || 0).toFixed(2))
-// Python's "%g": no trailing zeros (1 -> "1", 2.6 -> "2.6", 0.5 -> "0.5")
 env.addFilter("num", (value) => String(Number.parseFloat((Number(value) || 0).toPrecision(6))))
 
 const compiledReceipt = nunjucks.compile(receiptTemplate, env)
@@ -82,7 +72,6 @@ export function buildReceiptContext({
 				!isManuallyEdited && item.discount_percentage > 0 ? item.discount_percentage : 0,
 			discount_per_unit: qty ? discount / qty : 0,
 			vat_rate: taxRatesByGroup?.[item.item_group] ?? 0,
-			// item.amount is the net amount (tax extracted) computed by the cart
 			net: item.amount || 0,
 		}
 	})
@@ -93,8 +82,13 @@ export function buildReceiptContext({
 		cashier,
 		address,
 		invoiceName,
-		postingDate: formatDate(date),
-		postingTime: formatTime(date),
+		posting: formatPosting({
+			year: date.getFullYear(),
+			month: date.getMonth() + 1,
+			day: date.getDate(),
+			hours: date.getHours(),
+			minutes: date.getMinutes(),
+		}),
 		grandTotal,
 		payments,
 		changeAmount,
@@ -111,8 +105,6 @@ export function buildReceiptContext({
  * @param {Object} [options.address] - { address_line1, pincode, city, phone }
  */
 export function buildReceiptContextFromInvoice(invoice, { address = null } = {}) {
-	// Only "On Net Total" rows are VAT. An item's rate comes from its
-	// item_tax_rate (set per Item Group by brocki_tax), else the row's rate.
 	const vatTaxes = (invoice.taxes || []).filter((t) => t.charge_type === "On Net Total")
 
 	const lines = (invoice.items || []).map((item) => {
@@ -127,7 +119,6 @@ export function buildReceiptContextFromInvoice(invoice, { address = null } = {})
 		)
 		const unitPrice = item.price_list_rate || item.rate || 0
 		const gross = round2(item.qty * unitPrice)
-		// Taxes are included, so item.amount is the gross after discount
 		const discount = round2(gross - item.amount)
 
 		return {
@@ -149,8 +140,7 @@ export function buildReceiptContextFromInvoice(invoice, { address = null } = {})
 		cashier: invoice.cashier || invoice.owner,
 		address,
 		invoiceName: invoice.name,
-		postingDate: formatServerDate(invoice.posting_date),
-		postingTime: formatServerTime(invoice.posting_time),
+		posting: formatServerPosting(invoice.posting_date, invoice.posting_time),
 		grandTotal: invoice.grand_total,
 		payments: invoice.payments,
 		changeAmount: invoice.change_amount,
@@ -159,25 +149,19 @@ export function buildReceiptContextFromInvoice(invoice, { address = null } = {})
 	})
 }
 
-const formatDate = (date) => `${pad(date.getDate())}.${pad(date.getMonth() + 1)}.${date.getFullYear()}`
-const formatTime = (date) => `${pad(date.getHours())}:${pad(date.getMinutes())}`
-
-/** "2026-11-27" -> "27.11.2026" */
-function formatServerDate(value) {
-	const [year, month, day] = String(value || "").split("-")
-	return day ? `${day}.${month}.${year}` : ""
+function formatPosting({ year, month, day, hours, minutes }) {
+	return {
+		date: `${pad(day)}.${pad(month)}.${year}`,
+		time: `${pad(hours)}:${pad(minutes)}`,
+	}
 }
 
-/** "9:05:00.123456" -> "09:05" */
-function formatServerTime(value) {
-	const [hours, minutes] = String(value || "").split(":")
-	return minutes ? `${pad(hours)}:${pad(minutes)}` : ""
+function formatServerPosting(postingDate, postingTime) {
+	const [year, month, day] = String(postingDate || "").split("-")
+	const [hours = 0, minutes = 0] = String(postingTime || "").split(":")
+	return formatPosting({ year, month, day, hours, minutes })
 }
 
-/**
- * Shared part of both builders: VAT codes, VAT table and totals.
- * VAT codes are numbered in order of first appearance.
- */
 function assembleContext(lines, meta) {
 	const vatRates = []
 	const vatNet = new Map()
@@ -206,8 +190,8 @@ function assembleContext(lines, meta) {
 		cashier: meta.cashier,
 		address: meta.address,
 		invoice_name: meta.invoiceName,
-		posting_date: meta.postingDate,
-		posting_time: meta.postingTime,
+		posting_date: meta.posting.date,
+		posting_time: meta.posting.time,
 		items: lines,
 		total_gross: totalGross,
 		total_discount: round2(totalGross - meta.grandTotal),
@@ -222,7 +206,6 @@ function assembleContext(lines, meta) {
 	}
 }
 
-/** Render a receipt context to a complete HTML document. */
 export function renderReceiptHTML(context) {
 	const body = compiledReceipt.render({ logo: LOGO_DATA_URI, ...context })
 	return `<!DOCTYPE html>
@@ -232,7 +215,7 @@ export function renderReceiptHTML(context) {
 </html>`
 }
 
-/** Print through a hidden iframe: no popup window, no server request. */
+/** Print through a hidden iframe */
 function printViaIframe(html) {
 	return new Promise((resolve, reject) => {
 		const iframe = document.createElement("iframe")

@@ -72,14 +72,6 @@
 								{{ __('Delete') }}
 							</button>
 							<button
-								v-if="allowPrintDraftInvoices"
-								type="button"
-								:class="[actionButtonClass, 'bg-primary hover:bg-primary-hover active:bg-primary-active']"
-								@click="handlePrintDraft(draft)"
-							>
-								{{ __('Print') }}
-							</button>
-							<button
 								type="button"
 								:class="[actionButtonClass, 'bg-primary hover:bg-primary-hover active:bg-primary-active']"
 								@click="$emit('load-draft', draft)"
@@ -146,19 +138,16 @@
 
 <script setup>
 import { useToast } from "@/composables/useToast"
-import { usePOSShiftStore } from "@/stores/posShift"
 import {
 	DEFAULT_CURRENCY,
 	formatCurrency as formatCurrencyUtil,
 	roundCurrency,
 } from "@/utils/currency"
 import { clearAllDrafts, deleteDraft, getAllDrafts } from "@/utils/draftManager"
-import { printInvoiceCustom } from "@/utils/printInvoice"
 import { Dialog, FeatherIcon } from "frappe-ui"
 import { computed, onMounted, ref, watch } from "vue"
 
 const { showSuccess, showError } = useToast()
-const shiftStore = usePOSShiftStore()
 
 const props = defineProps({
 	modelValue: Boolean,
@@ -166,18 +155,11 @@ const props = defineProps({
 		type: String,
 		default: DEFAULT_CURRENCY,
 	},
-	allowPrintDraftInvoices: {
-		type: Boolean,
-		default: false,
-	},
 })
 
 const emit = defineEmits(["update:modelValue", "load-draft", "drafts-updated"])
 
-const gridCols = computed(
-	() =>
-		`grid ${props.allowPrintDraftInvoices ? "grid-cols-[minmax(0,1fr)_6rem_10rem_25rem]" : "grid-cols-[minmax(0,1fr)_6rem_10rem_17rem]"} items-center gap-3`,
-)
+const gridCols = "grid grid-cols-[minmax(0,1fr)_6rem_10rem_17rem] items-center gap-3"
 
 const actionButtonClass =
 	"w-28 h-14 flex items-center justify-center rounded-xl text-white text-lg font-semibold shadow-sm transition-colors duration-75 touch-manipulation"
@@ -234,30 +216,6 @@ async function confirmDelete() {
 		)
 	} finally {
 		confirmTarget.value = null
-	}
-}
-
-function handlePrintDraft(draft) {
-	if (!props.allowPrintDraftInvoices) return
-
-	try {
-		printInvoiceCustom({
-			name: draft.draft_id,
-			company: shiftStore.profileCompany,
-			items: draft.items,
-			payments: [],
-			grand_total: calculateTotal(draft.items),
-			posting_date: draft.created_at,
-			customer_name:
-				draft.customer?.customer_name || draft.customer?.name || draft.customer,
-			status: "Draft",
-			header: "Draft",
-			footer:
-				"الفاتورة لم يتم تسجيلها في حسابات الجهة، وبالتالي لا يُعتد بها، ولا تتحمل الجهة أي مسؤولية عن أي أضرار قد تنتج عنها.",
-		})
-	} catch (error) {
-		console.error("Error printing draft:", error)
-		showError(__("Failed to print draft"))
 	}
 }
 

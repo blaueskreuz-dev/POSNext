@@ -203,8 +203,7 @@
 
 			<!-- Draft Invoices Dialog -->
 			<DraftInvoicesDialog v-model="uiStore.showDraftDialog" :currency="shiftStore.profileCurrency"
-				:allow-print-draft-invoices="posSettingsStore.allowPrintDraftInvoices" @load-draft="handleLoadDraft"
-				@drafts-updated="draftsStore.updateDraftsCount" />
+				@load-draft="handleLoadDraft" @drafts-updated="draftsStore.updateDraftsCount" />
 
 			<!-- Return Invoice Dialog -->
 			<ReturnInvoiceDialog v-model="uiStore.showReturnDialog" :pos-profile="shiftStore.profileName"

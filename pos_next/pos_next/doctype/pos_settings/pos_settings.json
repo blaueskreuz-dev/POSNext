@@ -45,7 +45,6 @@
   "allow_return_without_invoice",
   "return_validity_days",
   "allow_free_batch_return",
-  "allow_print_draft_invoices",
   "section_break_pricing",
   "decimal_precision",
   "section_break_customer",
@@ -355,13 +354,6 @@
    "label": "Allow Free Batch Return"
   },
   {
-   "default": "0",
-   "description": "Print invoices before submission",
-   "fieldname": "allow_print_draft_invoices",
-   "fieldtype": "Check",
-   "label": "Allow Print Draft Invoices"
-  },
-  {
    "collapsible": 1,
    "fieldname": "section_break_pricing",
    "fieldtype": "Section Break",
@@ -542,7 +534,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-01-11 16:52:08.009217",
+ "modified": "2026-11-27 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "POS Next",
  "name": "POS Settings",
